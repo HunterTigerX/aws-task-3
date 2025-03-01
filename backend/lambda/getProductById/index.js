@@ -1,54 +1,78 @@
-const { products } = require("./mockData");
+const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
+const {
+  DynamoDBDocumentClient,
+  GetCommand,
+  ScanCommand,
+} = require("@aws-sdk/lib-dynamodb");
+
 const headers = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET",
-  "Access-Control-Allow-Headers": "Content-Type",
+  "Access-Control-Allow-Methods": "GET, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type,Authorization",
+  "Access-Control-Allow-Credentials": true,
   "Content-Type": "application/json",
 };
 
+const client = new DynamoDBClient();
+const docClient = DynamoDBDocumentClient.from(client);
+
 exports.handler = async (event) => {
-  // Handle OPTIONS preflight request
+  console.log(
+    "getProductById lambda invoked with event:",
+    JSON.stringify(event)
+  );
+
+  const createResponse = (statusCode, body) => ({
+    statusCode,
+    headers,
+    body: JSON.stringify(body),
+  });
+
   if (event.httpMethod === "OPTIONS") {
-    return {
-      statusCode: 200,
-      headers,
-      body: "",
-    };
+    return createResponse(200, "");
   }
 
   try {
-    // const productId = event.productId;
     const productId = event.pathParameters?.productId;
-
+    console.log("productId", productId);
+    
     if (!productId) {
-      return {
-        statusCode: 400,
-        headers, // Use the consistent headers
-        body: JSON.stringify({ message: "Product ID is required" }),
-      };
+      return createResponse(400, { message: "Product ID is required" });
     }
 
-    const product = products.find((p) => p.id === productId);
+    // Get specific product
+    const productResult = await docClient.send(
+      new GetCommand({
+        TableName: process.env.PRODUCTS_TABLE,
+        Key: {
+          id: productId
+        }
+      })
+    );
 
-    if (!product) {
-      return {
-        statusCode: 404,
-        headers,
-        body: JSON.stringify({ message: "Product not found" }),
-      };
+    // Get stock for the product
+    const stockResult = await docClient.send(
+      new GetCommand({
+        TableName: process.env.STOCKS_TABLE,
+        Key: {
+          product_id: productId
+        }
+      })
+    );
+
+    if (!productResult.Item) {
+      return createResponse(404, { message: "Product not found" });
     }
 
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify(product),
+    // Combine product with its stock
+    const product = {
+      ...productResult.Item,
+      count: stockResult.Item?.count || 0
     };
+
+    return createResponse(200, product);
   } catch (error) {
     console.error("Error:", error);
-    return {
-      statusCode: 500,
-      headers, // Use the consistent headers
-      body: JSON.stringify({ message: "Internal server error" }),
-    };
+    return createResponse(500, { message: "Internal server error" });
   }
 };

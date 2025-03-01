@@ -19,6 +19,9 @@ function execute(command, cwd) {
 
 async function deploy() {
   try {
+    console.log("Installing UUID");
+    execute("npm install", path.join(__dirname, "../lambda/createProduct"));
+
     // Build and deploy app
     console.log("Installing app dependencies...");
     execute(
@@ -38,6 +41,10 @@ async function deploy() {
 
     console.log("Deploying infrastructure...");
     execute("cdk deploy --require-approval never");
+
+    // Create and seed DynamoDB tables
+    console.log("Creating and seeding DynamoDB tables...");
+    execute("node createTables.js", path.join(__dirname, "../dynamoDB"));
 
     // Invalidate CloudFront cache
     console.log("Invalidating CloudFront cache...");
