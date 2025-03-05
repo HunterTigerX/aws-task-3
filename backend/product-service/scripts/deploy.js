@@ -26,11 +26,11 @@ async function deploy() {
     console.log("Installing app dependencies...");
     execute(
       "npm install --legacy-peer-deps",
-      path.join(__dirname, "../../frontend")
+      path.join(__dirname, "../../../frontend")
     );
 
     console.log("Building application...");
-    execute("npm run build", path.join(__dirname, "../../frontend"));
+    execute("npm run build", path.join(__dirname, "../../../frontend"));
 
     // Deploy infrastructure
     console.log("Installing CDK dependencies...");
@@ -50,7 +50,7 @@ async function deploy() {
     console.log("Invalidating CloudFront cache...");
     execute("npm run invalidate-cache");
 
-    console.log("\nDeployment completed successfully!");
+    console.log("\nProduct deployment completed successfully!");
     console.log("You can find the CloudFront URL in the stack outputs above");
   } catch (error) {
     console.error("Deployment failed:", error);

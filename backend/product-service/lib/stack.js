@@ -26,6 +26,19 @@ class WebsiteStack extends Stack {
       )
     );
 
+    // // Import existing DynamoDB tables
+    // const productsTable = dynamodb.Table.fromTableName(
+    //   this,
+    //   "ExistingProductsTable",
+    //   "products"
+    // );
+
+    // const stocksTable = dynamodb.Table.fromTableName(
+    //   this,
+    //   "ExistingStocksTable",
+    //   "stocks"
+    // );
+
     // Create DynamoDB tables
     const productsTable = new dynamodb.Table(this, "ProductsTable", {
       tableName: "products",
@@ -200,7 +213,7 @@ class WebsiteStack extends Stack {
   deployWebsiteContent(websiteBucket, distribution) {
     new s3deploy.BucketDeployment(this, "WebsiteDeployment", {
       sources: [
-        s3deploy.Source.asset(path.join(__dirname, "../../frontend/dist")),
+        s3deploy.Source.asset(path.join(__dirname, "../../../frontend/dist")),
       ],
       destinationBucket: websiteBucket,
       distribution,

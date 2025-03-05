@@ -28,7 +28,7 @@ Also execute("node createTables.js", path.join(__dirname, "../dynamoDB")) at .\b
 ![image](https://github.com/user-attachments/assets/ffaef37f-96f5-4eed-a28d-ab306e03e32c)
 ![image](https://github.com/user-attachments/assets/67f85313-090c-440c-98ef-b4d490edb8f1)
 ![image](https://github.com/user-attachments/assets/e8c33dc0-4d53-4c2d-b253-7f03e4e4beb2)
-3. Deploy: https://driww1sq5lcii.cloudfront.net
+3. Deploy: https://dg6daiz83pgjf.cloudfront.net
 3. API for POST requests https://dixi2cp20f.execute-api.eu-central-1.amazonaws.com/prod/products
 3. API for GET requests https://dixi2cp20f.execute-api.eu-central-1.amazonaws.com/prod/products
 3. API for GET requests https://dixi2cp20f.execute-api.eu-central-1.amazonaws.com/prod/products/1
