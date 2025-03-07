@@ -26,31 +26,31 @@ class WebsiteStack extends Stack {
       )
     );
 
-    // // Import existing DynamoDB tables
-    // const productsTable = dynamodb.Table.fromTableName(
-    //   this,
-    //   "ExistingProductsTable",
-    //   "products"
-    // );
+    // Import existing DynamoDB tables
+    const productsTable = dynamodb.Table.fromTableName(
+      this,
+      "ExistingProductsTable",
+      "products"
+    );
 
-    // const stocksTable = dynamodb.Table.fromTableName(
-    //   this,
-    //   "ExistingStocksTable",
-    //   "stocks"
-    // );
+    const stocksTable = dynamodb.Table.fromTableName(
+      this,
+      "ExistingStocksTable",
+      "stocks"
+    );
 
-    // Create DynamoDB tables
-    const productsTable = new dynamodb.Table(this, "ProductsTable", {
-      tableName: "products",
-      partitionKey: { name: "id", type: dynamodb.AttributeType.STRING },
-      removalPolicy: cdk.RemovalPolicy.RETAIN,
-    });
+    // // Create DynamoDB tables
+    // const productsTable = new dynamodb.Table(this, "ProductsTable", {
+    //   tableName: "products",
+    //   partitionKey: { name: "id", type: dynamodb.AttributeType.STRING },
+    //   removalPolicy: cdk.RemovalPolicy.RETAIN,
+    // });
 
-    const stocksTable = new dynamodb.Table(this, "StocksTable", {
-      tableName: "stocks",
-      partitionKey: { name: "product_id", type: dynamodb.AttributeType.STRING },
-      removalPolicy: cdk.RemovalPolicy.RETAIN,
-    });
+    // const stocksTable = new dynamodb.Table(this, "StocksTable", {
+    //   tableName: "stocks",
+    //   partitionKey: { name: "product_id", type: dynamodb.AttributeType.STRING },
+    //   removalPolicy: cdk.RemovalPolicy.RETAIN,
+    // });
 
     const dbPolicies = new iam.PolicyStatement({
       effect: iam.Effect.ALLOW,
@@ -90,9 +90,8 @@ class WebsiteStack extends Stack {
 
   createWebsiteBucket() {
     return new s3.Bucket(this, "WebsiteBucket", {
-      bucketName: "huntertigerx",
-      autoDeleteObjects: true,
-      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      bucketName: "websitebuckethtx2",
+      removalPolicy: cdk.RemovalPolicy.RETAIN,
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       encryption: s3.BucketEncryption.S3_MANAGED, // Adding encryption
     });

@@ -3,6 +3,7 @@ const { WebsiteStack } = require("../lib/stack");
 
 const app = new cdk.App();
 new WebsiteStack(app, "WebsiteStack", {
+  stackName: "WebsiteStack",
   env: {
     region: "eu-central-1",
   },

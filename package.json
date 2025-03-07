@@ -6,5 +6,8 @@
   },
   "scripts": {
     "deploy": "node scripts/deploy.js"
+  },
+  "dependencies": {
+    "sinon": "^19.0.2"
   }
 }
