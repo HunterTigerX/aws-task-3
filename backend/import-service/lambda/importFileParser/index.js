@@ -7,22 +7,22 @@ const headers = {
     "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type",
     "Content-Type": "application/json",
-  };
+};
 
 exports.handler = async (event) => {
     console.log(
         "importFileParser lambda invoked with event:",
         JSON.stringify(event)
-      );
+    );
 
     const createResponse = (statusCode, body) => ({
         statusCode,
         headers,
         body: JSON.stringify(body),
-      });
+    });
 
     try {
-        // Get bucket and key from the S3 event
+        // Get bucket and key from the S3 event - Fixed property path
         const bucket = event.Records[0].s3.bucket.name;
         const key = decodeURIComponent(event.Records[0].s3.object.key.replace(/\+/g, ' '));
 
@@ -43,7 +43,6 @@ exports.handler = async (event) => {
             s3Stream
                 .pipe(csv())
                 .on('data', (data) => {
-                    // Log each record to CloudWatch
                     console.log('Parsed record:', JSON.stringify(data));
                 })
                 .on('error', (error) => {
@@ -55,10 +54,11 @@ exports.handler = async (event) => {
                     resolve();
                 });
         });
+
         return createResponse(
             200,
-            JSON.stringify({ body: "CSV processing completed successfully" })
-          );
+            { body: "CSV processing completed successfully" }
+        );
 
     } catch (error) {
         console.error('Error:', error);
