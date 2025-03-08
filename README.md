@@ -1,48 +1,32 @@
-Here are the AWS CLI commands to create both Products table and Stocks table with the required schemas:
-
-# Create Products table
-aws dynamodb create-table \
-    --table-name products \
-    --attribute-definitions \
-        AttributeName=id,AttributeType=S \
-    --key-schema \
-        AttributeName=id,KeyType=HASH \
-    --billing-mode PAY_PER_REQUEST
-
-# Create Stocks table
-aws dynamodb create-table \
-    --table-name stocks \
-    --attribute-definitions \
-        AttributeName=product_id,AttributeType=S \
-    --key-schema \
-        AttributeName=product_id,KeyType=HASH \
-    --billing-mode PAY_PER_REQUEST
-
-Also execute("node createTables.js", path.join(__dirname, "../dynamoDB")) at .\backend\scripts\deploy.js creates tables and fills them with data;
-
-1. Task: https://github.com/rolling-scopes-school/aws/blob/main/aws-developer/04_integration_with_nosql_database/task.md
+1. Task: https://github.com/rolling-scopes-school/aws/blob/main/aws-developer/05_integration_with_s3/task.md
 2. Screenshot:  
-![image](https://github.com/user-attachments/assets/69c1848c-7491-405c-9021-4eb362530e10)
-![image](https://github.com/user-attachments/assets/26017984-2288-4f54-8cb6-418460685902)
-![image](https://github.com/user-attachments/assets/3ab222f9-3d1b-46e3-a163-ea339e3e18e4)
-![image](https://github.com/user-attachments/assets/ffaef37f-96f5-4eed-a28d-ab306e03e32c)
-![image](https://github.com/user-attachments/assets/67f85313-090c-440c-98ef-b4d490edb8f1)
-![image](https://github.com/user-attachments/assets/e8c33dc0-4d53-4c2d-b253-7f03e4e4beb2)
-3. Deploy: https://dg6daiz83pgjf.cloudfront.net
-3. API for POST requests https://dixi2cp20f.execute-api.eu-central-1.amazonaws.com/prod/products
-3. API for GET requests https://dixi2cp20f.execute-api.eu-central-1.amazonaws.com/prod/products
-3. API for GET requests https://dixi2cp20f.execute-api.eu-central-1.amazonaws.com/prod/products/1
-4. Done 01.03.2025 / deadline 02.03.2025
+We created CSV file
+![image](https://github.com/user-attachments/assets/18849b8d-f8d5-4934-9e61-95aad284b005)
+We added it on the website
+![image](https://github.com/user-attachments/assets/b5e27767-7d20-493c-a8ec-de0639c72ee5)
+We uploaded it
+![image](https://github.com/user-attachments/assets/2205bc7e-6851-498a-91c8-f88ff3f1490c)
+We checked CloudWatch event
+![image](https://github.com/user-attachments/assets/0d8c5fd1-ea47-485b-b7d2-972708285726)
+We checked Bucket folders
+![image](https://github.com/user-attachments/assets/4cdc7e25-c9f5-4d49-8703-c42584efe52f)
+There are no tableConvert.com_3.csv in uploaded, only old files, because I just implemented last requirement
+![image](https://github.com/user-attachments/assets/2ab8d872-64c8-4eb6-bac0-c8248500714c)
+And tableConvert.com_3.csv only exists in parsed
+![image](https://github.com/user-attachments/assets/ac5f75d9-9e17-466d-811f-5d7d47a74bf2)
+Tests have 100% coverage
+![image](https://github.com/user-attachments/assets/c9b451bb-c5f9-43e6-9e73-18f57e99fed0)
+3. Deploy: https://ducodo879x8ic.cloudfront.net
+4. Done 08.03.2025 / deadline 09.03.2025
 5. Score: 100 / 100
 - Basic Scope
-- [x] **+0** Task 4.1 is implemented
-- [x] **+0** Task 4.2 is implemented lambda links are provided and returns data
-- [x] **+0** Task 4.3 is implemented lambda links are provided and products is stored in DB (call Task 4.2 to see the product)
-- [x] **+70** Your own Frontend application is integrated with Product Service (/products API) and products from Product Service are represented on Frontend. Link to a working Frontend application is provided for cross-check reviewer.
+- [x] **+0** AWS CDK Stack contains configuration for importProductsFile function
+- [x] **+0** The importProductsFile lambda function returns a correct response which can be used to upload a file into the S3 bucket
+- [x] **+0** Frontend application is integrated with importProductsFile lambda
+- [x] **+70** The importFileParser lambda function is implemented and AWS CDK Stack contains configuration for the lambda
 - Additional (optional) tasks
-- [x] **+7.5** POST /products lambda functions returns error 400 status code if product data is invalid
-- [x] **+7.5** All lambdas return error 500 status code on any error (DB connection, any unhandled error in code)
-- [x] **+7.5** All lambdas do console.log for each incoming requests and their arguments
-- [x] **+7.5** Transaction based creation of product (in case stock creation is failed then related to this stock product is not created and not ready to be used by the end user and vice versa) 
+- [x] **+10** importProductsFile lambda is covered by unit tests. S3 and AWS SDK methods are mocked so actual AWS services are not trigger while unit testing.
+- [x] **+10** importFileParser lambda is covered by unit tests.
+- [x] **+10** At the end of the stream the lambda function should move the file from the uploaded folder into the parsed folder (move the file means that file should be copied into a new folder in the same bucket called parsed, and then deleted from uploaded folder)
 
 P.S. Swagger was not updated for this task because there were no requriments to do so. All requests can be done by postman at https://web.postman.co.

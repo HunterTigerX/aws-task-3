@@ -29,7 +29,7 @@ exports.handler = async (event) => {
     if (!fileName) {
       return createResponse(
         400,
-        JSON.stringify({ error: "Filename is required" })
+        { error: "Filename is required" }
       );
     }
 
@@ -49,7 +49,7 @@ exports.handler = async (event) => {
     console.error("Error:", error);
     return createResponse(
       500,
-      JSON.stringify({ error: "Failed to generate signed URL" })
+      { error: "Failed to generate signed URL" }
     );
   }
 };

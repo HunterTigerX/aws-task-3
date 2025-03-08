@@ -22,17 +22,14 @@ exports.handler = async (event) => {
     });
 
     try {
-        // Get bucket and key from the S3 event - Fixed property path
         const bucket = event.Records[0].s3.bucket.name;
         const key = decodeURIComponent(event.Records[0].s3.object.key.replace(/\+/g, ' '));
 
-        // Ensure we're only processing files from the 'uploaded' folder
         if (!key.startsWith('uploaded/')) {
             console.log('File not in uploaded folder. Skipping processing.');
             return;
         }
 
-        // Get the file stream from S3
         const s3Stream = s3Client.getObject({
             Bucket: bucket,
             Key: key
@@ -55,9 +52,27 @@ exports.handler = async (event) => {
                 });
         });
 
+        // Move file to parsed folder
+        const newKey = key.replace('uploaded/', 'parsed/');
+        
+        // Copy the file to the new location
+        await s3Client.copyObject({
+            Bucket: bucket,
+            CopySource: `${bucket}/${key}`,
+            Key: newKey
+        }).promise();
+
+        // Delete the original file
+        await s3Client.deleteObject({
+            Bucket: bucket,
+            Key: key
+        }).promise();
+
+        console.log(`Successfully moved file from ${key} to ${newKey}`);
+
         return createResponse(
             200,
-            { body: "CSV processing completed successfully" }
+            { body: "CSV processing completed successfully and file moved to parsed folder" }
         );
 
     } catch (error) {

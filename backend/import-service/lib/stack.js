@@ -84,7 +84,14 @@ class ImportStack extends Stack {
     // Create IAM policy for Upload S3 access
     const dbPolicies = new iam.PolicyStatement({
       effect: iam.Effect.ALLOW,
-      actions: ["s3:PutObject", "s3:GetObject", "s3:ListBucket"],
+      actions: [
+        "s3:PutObject",
+        "s3:GetObject",
+        "s3:ListBucket",
+        "s3:CopyObject",
+        "s3:DeleteObject",
+        "s3:HeadObject",
+      ],
       resources: [`${uploadBucket.bucketArn}/*`],
     });
 
@@ -103,7 +110,14 @@ class ImportStack extends Stack {
     // Create IAM policy for Import S3 access
     const s3Policy = new iam.PolicyStatement({
       effect: iam.Effect.ALLOW,
-      actions: ["s3:GetObject", "s3:PutObject", "s3:ListBucket"],
+      actions: [
+        "s3:PutObject",
+        "s3:GetObject",
+        "s3:ListBucket",
+        "s3:CopyObject",
+        "s3:DeleteObject",
+        "s3:HeadObject",
+      ],
       resources: [`${uploadBucket.bucketArn}/uploaded/*`],
     });
 
