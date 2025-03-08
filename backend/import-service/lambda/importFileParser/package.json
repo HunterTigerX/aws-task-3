@@ -1,0 +1,9 @@
+{
+  "name": "aws",
+  "version": "0.1.0",
+  "main": "index.js",
+  "dependencies": {
+    "csv-parser": "^3.2.0",
+    "aws-sdk": "^2.1692.0"
+  }
+}
