@@ -14,24 +14,23 @@
     "invalidate-cache": "node scripts/invalidate-cache.js"
   },
   "devDependencies": {
+    "@aws-sdk/lib-dynamodb": "^3.758.0",
     "aws-cdk": "2.178.2",
     "aws-cdk-lib": "^2.0.0",
     "aws-sdk": "^2.1480.0",
-    "constructs": "^10.0.0",
-    "jest": "^29.7.0",
-    "@aws-sdk/lib-dynamodb": "^3.758.0"
+    "constructs": "^10.4.2",
+    "jest": "^29.7.0"
   },
   "dependencies": {
+    "@aws-sdk/client-cloudfront": "^3.0.0",
     "@aws-sdk/client-dynamodb": "^3.758.0",
     "@aws-sdk/lib-dynamodb": "^3.758.0",
     "@types/aws-lambda": "^8.10.138",
-    "@types/uuid": "^10.0.0",
-    "@aws-sdk/client-cloudfront": "^3.0.0",
     "@types/jest": "^29.0.0",
     "@types/node": "^20.0.0",
+    "@types/uuid": "^10.0.0",
     "aws-cdk": "^2.0.0",
     "aws-cdk-lib": "^2.178.2",
-    "constructs": "^10.4.2",
     "jest": "^29.0.0",
     "ts-jest": "^29.0.0",
     "typescript": "^5.0.0",

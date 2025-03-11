@@ -1,6 +1,8 @@
 const cdk = require("aws-cdk-lib");
 const { Stack } = require("aws-cdk-lib");
 const lambda = require("aws-cdk-lib/aws-lambda");
+const sqs = require("aws-cdk-lib/aws-sqs");
+const lambdaEventSources = require("aws-cdk-lib/aws-lambda-event-sources");
 const apigateway = require("aws-cdk-lib/aws-apigateway");
 const s3 = require("aws-cdk-lib/aws-s3");
 const cloudfront = require("aws-cdk-lib/aws-cloudfront");
@@ -76,15 +78,29 @@ class WebsiteStack extends Stack {
     // Deploy website content
     this.deployWebsiteContent(websiteBucket, distribution);
 
+        // Create SQS Queue
+        const catalogItemsQueue = new sqs.Queue(this, 'CatalogItemsQueue', {
+          queueName: 'catalogItemsQueue',
+          visibilityTimeout: cdk.Duration.seconds(30),
+        });
+
+        
     // Create Lambda functions
-    const { getProductsListLambda, getProductByIdLambda, createProductLambda } =
+    const { getProductsListLambda, getProductByIdLambda, createProductLambda, catalogBatchProcessLambda } =
       this.createLambdaFunctions(productsTable, stocksTable, dbPolicies);
+
+          // Configure SQS as event source for Lambda
+          catalogBatchProcessLambda.addEventSource(new lambdaEventSources.SqsEventSource(catalogItemsQueue, {
+      batchSize: 5,
+    }));
+
+    productsTable.grantWriteData(catalogBatchProcessLambda);
 
     // Create API Gateway and endpoints
     this.createApiGateway(
       getProductsListLambda,
       getProductByIdLambda,
-      createProductLambda
+      createProductLambda, catalogBatchProcessLambda
     );
   }
 
@@ -172,13 +188,28 @@ class WebsiteStack extends Stack {
     });
     createProductLambda.addToRolePolicy(dbPolicies);
 
-    return { getProductsListLambda, getProductByIdLambda, createProductLambda };
+    const catalogBatchProcessLambda = new lambda.Function(this, "catalogBatchProcess", {
+      runtime: lambda.Runtime.NODEJS_18_X,
+      handler: "index.handler",
+      code: lambda.Code.fromAsset(
+        path.join(__dirname, "../lambda/catalogBatchProcess")
+      ),
+      timeout: cdk.Duration.seconds(30),
+      environment: {
+        PRODUCTS_TABLE: productsTable.tableName,
+        STOCKS_TABLE: stocksTable.tableName,
+      },
+    });
+    catalogBatchProcessLambda.addToRolePolicy(dbPolicies);
+
+    return { getProductsListLambda, getProductByIdLambda, createProductLambda, catalogBatchProcessLambda };
   }
 
   createApiGateway(
     getProductsListLambda,
     getProductByIdLambda,
-    createProductLambda
+    createProductLambda, 
+    // catalogBatchProcessLambda
   ) {
     const api = new apigateway.RestApi(this, "ProductsApi", {
       restApiName: "Products Service",
