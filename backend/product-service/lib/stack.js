@@ -2,6 +2,8 @@ const cdk = require("aws-cdk-lib");
 const { Stack } = require("aws-cdk-lib");
 const lambda = require("aws-cdk-lib/aws-lambda");
 const sqs = require("aws-cdk-lib/aws-sqs");
+const sns = require("aws-cdk-lib/aws-sns");
+const subscriptions = require("aws-cdk-lib/aws-sns-subscriptions");
 const lambdaEventSources = require("aws-cdk-lib/aws-lambda-event-sources");
 const apigateway = require("aws-cdk-lib/aws-apigateway");
 const s3 = require("aws-cdk-lib/aws-s3");
@@ -15,6 +17,11 @@ const dynamodb = require("aws-cdk-lib/aws-dynamodb");
 class WebsiteStack extends Stack {
   constructor(scope, id, props) {
     super(scope, id, props);
+
+    // Create SNS Topic
+    const createProductTopic = new sns.Topic(this, "CreateProductTopic", {
+      displayName: "Create Product Topic",
+    });
 
     // Create a role for the Lambda functions
     const lambdaRole = new iam.Role(this, "LambdaRole", {
@@ -78,21 +85,73 @@ class WebsiteStack extends Stack {
     // Deploy website content
     this.deployWebsiteContent(websiteBucket, distribution);
 
-        // Create SQS Queue
-        const catalogItemsQueue = new sqs.Queue(this, 'CatalogItemsQueue', {
-          queueName: 'catalogItemsQueue',
-          visibilityTimeout: cdk.Duration.seconds(30),
-        });
+    // Create SQS Queue
+    const catalogItemsQueue = new sqs.Queue(this, "CatalogItemsQueue", {
+      queueName: "catalogItemsQueue",
+      visibilityTimeout: cdk.Duration.seconds(30),
+    });
 
-        
     // Create Lambda functions
-    const { getProductsListLambda, getProductByIdLambda, createProductLambda, catalogBatchProcessLambda } =
-      this.createLambdaFunctions(productsTable, stocksTable, dbPolicies);
+    const {
+      getProductsListLambda,
+      getProductByIdLambda,
+      createProductLambda,
+      catalogBatchProcessLambda,
+    } = this.createLambdaFunctions(productsTable, stocksTable, dbPolicies);
 
-          // Configure SQS as event source for Lambda
-          catalogBatchProcessLambda.addEventSource(new lambdaEventSources.SqsEventSource(catalogItemsQueue, {
-      batchSize: 5,
-    }));
+    // Configure SQS as event source for Lambda
+    catalogBatchProcessLambda.addEventSource(
+      new lambdaEventSources.SqsEventSource(catalogItemsQueue, {
+        batchSize: 5,
+      })
+    );
+
+    // We are granting Lambda permission to publish to SNS
+    createProductTopic.grantPublish(catalogBatchProcessLambda);
+
+    // Add email subscription
+    createProductTopic.addSubscription(
+      new subscriptions.EmailSubscription("HunterTigerX@gmail.com")
+    );
+
+    // Email subscription for expensive products (price >= 100)
+createProductTopic.addSubscription(
+  new subscriptions.EmailSubscription("expensive-products@example.com", {
+    filterPolicy: {
+      price: sns.SubscriptionFilter.numericFilter({
+        greaterThanOrEqualTo: 100,
+      }),
+    },
+  })
+);
+
+// Email subscription for inexpensive products (price < 100)
+createProductTopic.addSubscription(
+  new subscriptions.EmailSubscription("inexpensive-products@example.com", {
+    filterPolicy: {
+      price: sns.SubscriptionFilter.numericFilter({
+        lessThan: 100,
+      }),
+    },
+  })
+);
+
+// Email subscription for specific product category
+createProductTopic.addSubscription(
+  new subscriptions.EmailSubscription("count@example.com", {
+    filterPolicy: {
+      count: sns.SubscriptionFilter.numericFilter({
+        lessThan: 100,
+      }),
+    },
+  })
+);
+
+    // Pass the SNS topic ARN to Lambda as environment variable
+    catalogBatchProcessLambda.addEnvironment(
+      "SNS_TOPIC_ARN",
+      createProductTopic.topicArn
+    );
 
     productsTable.grantWriteData(catalogBatchProcessLambda);
 
@@ -100,7 +159,8 @@ class WebsiteStack extends Stack {
     this.createApiGateway(
       getProductsListLambda,
       getProductByIdLambda,
-      createProductLambda, catalogBatchProcessLambda
+      createProductLambda,
+      catalogBatchProcessLambda
     );
   }
 
@@ -188,27 +248,36 @@ class WebsiteStack extends Stack {
     });
     createProductLambda.addToRolePolicy(dbPolicies);
 
-    const catalogBatchProcessLambda = new lambda.Function(this, "catalogBatchProcess", {
-      runtime: lambda.Runtime.NODEJS_18_X,
-      handler: "index.handler",
-      code: lambda.Code.fromAsset(
-        path.join(__dirname, "../lambda/catalogBatchProcess")
-      ),
-      timeout: cdk.Duration.seconds(30),
-      environment: {
-        PRODUCTS_TABLE: productsTable.tableName,
-        STOCKS_TABLE: stocksTable.tableName,
-      },
-    });
+    const catalogBatchProcessLambda = new lambda.Function(
+      this,
+      "catalogBatchProcess",
+      {
+        runtime: lambda.Runtime.NODEJS_18_X,
+        handler: "index.handler",
+        code: lambda.Code.fromAsset(
+          path.join(__dirname, "../lambda/catalogBatchProcess")
+        ),
+        timeout: cdk.Duration.seconds(30),
+        environment: {
+          PRODUCTS_TABLE: productsTable.tableName,
+          STOCKS_TABLE: stocksTable.tableName,
+        },
+      }
+    );
     catalogBatchProcessLambda.addToRolePolicy(dbPolicies);
 
-    return { getProductsListLambda, getProductByIdLambda, createProductLambda, catalogBatchProcessLambda };
+    return {
+      getProductsListLambda,
+      getProductByIdLambda,
+      createProductLambda,
+      catalogBatchProcessLambda,
+    };
   }
 
   createApiGateway(
     getProductsListLambda,
     getProductByIdLambda,
-    createProductLambda, 
+    createProductLambda
     // catalogBatchProcessLambda
   ) {
     const api = new apigateway.RestApi(this, "ProductsApi", {
