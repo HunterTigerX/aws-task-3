@@ -8,7 +8,7 @@ const docClient = DynamoDBDocumentClient.from(client);
 const sns = new SNS();
 const { SNS_TOPIC_ARN } = process.env;
 
-export const handler = async (event) => {
+exports.handler = async (event) => {
   console.log("Received event:", JSON.stringify(event, null, 2));
 
   try {
