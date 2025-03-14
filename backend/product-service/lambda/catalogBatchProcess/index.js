@@ -1,75 +1,123 @@
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
-const { DynamoDBDocumentClient, PutCommand } = require("@aws-sdk/lib-dynamodb");
-const { SNS } = require("aws-sdk");
+const { SNSClient, PublishCommand } = require("@aws-sdk/client-sns"); // Make sure this package is in your dependencies
+const {
+  DynamoDBDocumentClient,
+  TransactWriteCommand,
+} = require("@aws-sdk/lib-dynamodb");
+const { v4: uuidv4 } = require("uuid");
 
-const client = new DynamoDBClient({});
+const client = new DynamoDBClient();
 const docClient = DynamoDBDocumentClient.from(client);
+const snsClient = new SNSClient(); // This should work now
 
-const sns = new SNS();
-const { SNS_TOPIC_ARN } = process.env;
+const headers = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+  "Content-Type": "application/json",
+};
 
 exports.handler = async (event) => {
-  console.log("Received event:", JSON.stringify(event, null, 2));
+  console.log(
+    "createProduct lambda invoked with event:",
+    JSON.stringify(event)
+  );
 
+  const createResponse = (statusCode, body) => ({
+    statusCode,
+    headers,
+    body: JSON.stringify(body),
+  });
+
+  console.log("Starting Processing");
   try {
-    const productPromises = event.Records.map(async (record) => {
-      const productData = JSON.parse(record.body);
+    // Process each message from SQS
+    for (const record of event.Records) {
+      console.log("Processing record:", record.messageId);
+      console.log("Raw message body:", record.body);
+      console.log("Processing SQS record:", record);
+      let product;
+      try {
+        product = JSON.parse(record.body);
+      } catch (parseError) {
+        console.error("Failed to parse message:", parseError);
+        continue;
+      }
 
-      const params = {
-        TableName: process.env.PRODUCTS_TABLE,
-        Item: {
-          id: productData.id,
-          title: productData.title,
-          description: productData.description,
-          price: productData.price,
-          count: productData.count,
-        },
+      // Converting price and count to numbers
+      product.price = Number(product.price);
+      product.count = Number(product.count);
+
+      const { title, description, price, count } = product;
+
+      if (!title || typeof price !== "number" || typeof count !== "number") {
+        console.error("Invalid product data:", product);
+        continue;
+      }
+
+      const productId = uuidv4();
+      console.log("Generated product ID:", productId);
+
+      const transactParams = {
+        TransactItems: [
+          {
+            Put: {
+              TableName: process.env.PRODUCTS_TABLE,
+              Item: {
+                id: productId,
+                title,
+                description,
+                price,
+              },
+            },
+          },
+          {
+            Put: {
+              TableName: process.env.STOCKS_TABLE,
+              Item: {
+                product_id: productId,
+                count,
+              },
+            },
+          },
+        ],
       };
 
       try {
-        // Create product in DynamoDB
-        await docClient.send(new PutCommand(params));
-        console.log(`Successfully created product: ${productData.id}`);
+        // Save to database
+        await docClient.send(new TransactWriteCommand(transactParams));
 
-        // Publish to SNS topic
-        await sns
-          .publish({
-            TopicArn: SNS_TOPIC_ARN,
+        // Send SNS notification
+        await snsClient.send(
+          new PublishCommand({
+            TopicArn: process.env.SNS_TOPIC_ARN,
             Message: JSON.stringify({
-              message: "Product created successfully",
-              product: productData,
+              id: productId,
+              title,
+              description,
+              price,
+              count,
             }),
             MessageAttributes: {
               price: {
                 DataType: "Number",
-                StringValue: productData.price.toString(),
-              },
-              count: {
-                DataType: "Number",
-                StringValue: productData.count.toString(),
+                StringValue: price.toString(),
               },
             },
-            Subject: `New Product Created: ${productData.title}`,
           })
-          .promise();
-
-        console.log(`SNS notification sent for product: ${productData.id}`);
+        );
       } catch (error) {
-        console.error(`Error processing product ${productData.id}:`, error);
-        throw error;
+        console.error("Error processing product:", error);
+        throw error; // This will cause SQS to retry the message
       }
-    });
-
-    await Promise.all(productPromises);
-
-    return {
-      statusCode: 200,
-      body: JSON.stringify({
-        message: `Successfully processed ${event.Records.length} products`,
-      }),
-    };
+    }
+    console.log("Product in catalogBatchProcess processed successfully:");
+    return createResponse(
+      200,
+      JSON.stringify({ message: "Products processed successfully" })
+    );
   } catch (error) {
-    console.error("Error processing batch:", error);
+    console.error("Error:", error);
     throw error;
   }
 };

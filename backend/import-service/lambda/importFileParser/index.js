@@ -24,13 +24,29 @@ exports.handler = async (event) => {
 
   try {
     const bucket = event.Records[0].s3.bucket.name;
-    const key = decodeURIComponent(
-      event.Records[0].s3.object.key.replace(/\+/g, " ")
+    let key = decodeURIComponent(
+      event.Records[0].s3.object.key.replace("%20", " ").replace(/\+/g, " ")
     );
+
+    // Add debug logging
+    console.log(`Attempting to access bucket: ${bucket}, key: ${key}`);
 
     if (!key.startsWith("uploaded/")) {
       console.log("File not in uploaded folder. Skipping processing.");
       return;
+    }
+
+    // Verifying the file exists before attempting to read it
+    try {
+      await s3Client
+        .headObject({
+          Bucket: bucket,
+          Key: key,
+        })
+        .promise();
+    } catch (headErr) {
+      console.log(`File check failed: ${headErr.message}`);
+      throw new Error(`File ${key} does not exist in bucket ${bucket}`);
     }
 
     const s3Stream = s3Client
@@ -41,33 +57,28 @@ exports.handler = async (event) => {
       .createReadStream();
 
     const queueUrl = process.env.SQS_QUEUE_URL;
+    if (!queueUrl) {
+      throw new Error("SQS_QUEUE_URL environment variable is not set");
+    }
+
     let messagesBatch = [];
-    let batchCounter = 0;
+    let batchId = 0;
 
     // Process the CSV file
     await new Promise((resolve, reject) => {
       s3Stream
         .pipe(csv())
         .on("data", async (data) => {
+          console.log("Parsed CSV data:", data);
           messagesBatch.push({
-            Id: `${batchCounter}`,
+            Id: `${batchId++}`,
             MessageBody: JSON.stringify(data),
           });
 
           // Send in batches of 10 (SQS batch limit)
           if (messagesBatch.length === 10) {
-            try {
-              await sqs
-                .sendMessageBatch({
-                  QueueUrl: queueUrl,
-                  Entries: messagesBatch,
-                })
-                .promise();
-              messagesBatch = [];
-              batchCounter += 10;
-            } catch (error) {
-              reject(error);
-            }
+            await sendBatchToSQS(queueUrl, messagesBatch);
+            messagesBatch = [];
           }
         })
         .on("error", (error) => {
@@ -77,14 +88,10 @@ exports.handler = async (event) => {
           // Send any remaining messages
           if (messagesBatch.length > 0) {
             try {
-              await sqs
-                .sendMessageBatch({
-                  QueueUrl: queueUrl,
-                  Entries: messagesBatch,
-                })
-                .promise();
+              await sendBatchToSQS(queueUrl, messagesBatch);
             } catch (error) {
               reject(error);
+              return;
             }
           }
           resolve();
@@ -98,7 +105,7 @@ exports.handler = async (event) => {
     await s3Client
       .copyObject({
         Bucket: bucket,
-        CopySource: `${bucket}/${key}`,
+        CopySource: `${bucket}/${encodeURIComponent(key)}`,
         Key: newKey,
       })
       .promise();
@@ -111,7 +118,9 @@ exports.handler = async (event) => {
       })
       .promise();
 
-    console.log(`Successfully moved file from ${key} to ${newKey}`);
+    console.log(
+      `Execution of importFileParser was successful. Successfully moved file from ${key} to ${newKey}`
+    );
 
     return createResponse(200, {
       body: "CSV processing completed successfully and file moved to parsed folder",
@@ -121,3 +130,31 @@ exports.handler = async (event) => {
     throw error;
   }
 };
+
+async function sendBatchToSQS(queueUrl, messages) {
+  console.log("Sending batch to SQS:", queueUrl);
+  const result = await sqs
+    .sendMessageBatch({
+      QueueUrl: queueUrl,
+      Entries: messages,
+    })
+    .promise();
+  console.log("Batch sent successfully:", result);
+  return result;
+}
+// async function sendBatchToSQS(queueUrl, messages) {
+//   console.log("Sending batch to SQS:", queueUrl);
+//   try {
+//     const result = await sqs
+//       .sendMessageBatch({
+//         QueueUrl: queueUrl,
+//         Entries: messages,
+//       })
+//       .promise();
+//     console.log("Batch sent successfully:", result);
+//     return result;
+//   } catch (error) {
+//     console.error("Error sending batch to SQS:", error);
+//     throw error; // Перебрасываем ошибку, чтобы она попала в .catch()
+//   }
+// }

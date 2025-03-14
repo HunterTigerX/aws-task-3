@@ -21,6 +21,7 @@ class WebsiteStack extends Stack {
     // Create SNS Topic
     const createProductTopic = new sns.Topic(this, "CreateProductTopic", {
       displayName: "Create Product Topic",
+      topicName: "createProductTopic",
     });
 
     // Create a role for the Lambda functions
@@ -61,21 +62,6 @@ class WebsiteStack extends Stack {
     //   removalPolicy: cdk.RemovalPolicy.RETAIN,
     // });
 
-    const dbPolicies = new iam.PolicyStatement({
-      effect: iam.Effect.ALLOW,
-      actions: [
-        "dynamodb:Query",
-        "dynamodb:Scan",
-        "dynamodb:GetItem",
-        "dynamodb:PutItem",
-        "dynamodb:UpdateItem",
-        "dynamodb:DeleteItem",
-      ],
-      resources: [productsTable.tableArn, stocksTable.tableArn],
-    });
-
-    lambdaRole.addToPolicy(dbPolicies);
-
     // Create S3 bucket for website hosting
     const websiteBucket = this.createWebsiteBucket();
 
@@ -91,6 +77,46 @@ class WebsiteStack extends Stack {
       visibilityTimeout: cdk.Duration.seconds(30),
     });
 
+    const dbPolicies = new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: [
+        "dynamodb:Query",
+        "dynamodb:Scan",
+        "dynamodb:GetItem",
+        "dynamodb:PutItem",
+        "dynamodb:UpdateItem",
+        "dynamodb:DeleteItem",
+        "dynamodb:TransactWriteItems",
+      ],
+      resources: [productsTable.tableArn, stocksTable.tableArn],
+    });
+
+    lambdaRole.addToPolicy(dbPolicies);
+
+    // Add SQS permissions
+    lambdaRole.addToPolicy(
+      new iam.PolicyStatement({
+        effect: iam.Effect.ALLOW,
+        actions: [
+          "sqs:ReceiveMessage",
+          "sqs:DeleteMessage",
+          "sqs:GetQueueAttributes",
+          "sqs:SendMessage",
+          "sqs:SendMessageBatch",
+        ],
+        resources: [catalogItemsQueue.queueArn],
+      })
+    );
+
+    // Add SNS permissions
+    lambdaRole.addToPolicy(
+      new iam.PolicyStatement({
+        effect: iam.Effect.ALLOW,
+        actions: ["sns:Publish"],
+        resources: [createProductTopic.topicArn],
+      })
+    );
+
     // Create Lambda functions
     const {
       getProductsListLambda,
@@ -103,6 +129,7 @@ class WebsiteStack extends Stack {
     catalogBatchProcessLambda.addEventSource(
       new lambdaEventSources.SqsEventSource(catalogItemsQueue, {
         batchSize: 5,
+        enabled: true,
       })
     );
 
@@ -115,37 +142,37 @@ class WebsiteStack extends Stack {
     );
 
     // Email subscription for expensive products (price >= 100)
-createProductTopic.addSubscription(
-  new subscriptions.EmailSubscription("expensive-products@example.com", {
-    filterPolicy: {
-      price: sns.SubscriptionFilter.numericFilter({
-        greaterThanOrEqualTo: 100,
-      }),
-    },
-  })
-);
+    createProductTopic.addSubscription(
+      new subscriptions.EmailSubscription("expensive-products@example.com", {
+        filterPolicy: {
+          price: sns.SubscriptionFilter.numericFilter({
+            greaterThanOrEqualTo: 100,
+          }),
+        },
+      })
+    );
 
-// Email subscription for inexpensive products (price < 100)
-createProductTopic.addSubscription(
-  new subscriptions.EmailSubscription("inexpensive-products@example.com", {
-    filterPolicy: {
-      price: sns.SubscriptionFilter.numericFilter({
-        lessThan: 100,
-      }),
-    },
-  })
-);
+    // Email subscription for inexpensive products (price < 100)
+    createProductTopic.addSubscription(
+      new subscriptions.EmailSubscription("inexpensive-products@example.com", {
+        filterPolicy: {
+          price: sns.SubscriptionFilter.numericFilter({
+            lessThan: 100,
+          }),
+        },
+      })
+    );
 
-// Email subscription for specific product category
-createProductTopic.addSubscription(
-  new subscriptions.EmailSubscription("count@example.com", {
-    filterPolicy: {
-      count: sns.SubscriptionFilter.numericFilter({
-        lessThan: 100,
-      }),
-    },
-  })
-);
+    // Email subscription for specific product category
+    createProductTopic.addSubscription(
+      new subscriptions.EmailSubscription("count@example.com", {
+        filterPolicy: {
+          count: sns.SubscriptionFilter.numericFilter({
+            lessThan: 100,
+          }),
+        },
+      })
+    );
 
     // Pass the SNS topic ARN to Lambda as environment variable
     catalogBatchProcessLambda.addEnvironment(
@@ -190,6 +217,12 @@ createProductTopic.addSubscription(
       errorResponses: [
         {
           httpStatus: 404,
+          responseHttpStatus: 200,
+          responsePagePath: "/index.html",
+          ttl: cdk.Duration.minutes(30),
+        },
+        {
+          httpStatus: 403,
           responseHttpStatus: 200,
           responsePagePath: "/index.html",
           ttl: cdk.Duration.minutes(30),
@@ -278,7 +311,6 @@ createProductTopic.addSubscription(
     getProductsListLambda,
     getProductByIdLambda,
     createProductLambda
-    // catalogBatchProcessLambda
   ) {
     const api = new apigateway.RestApi(this, "ProductsApi", {
       restApiName: "Products Service",

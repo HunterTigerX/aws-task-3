@@ -34,7 +34,7 @@ exports.handler = async (event) => {
   if (!event.body) {
     return createResponse(
       400,
-      JSON.stringify({ message: "Request body is required" })
+      ({ message: "Request body is required" })
     );
   }
 
@@ -45,7 +45,7 @@ exports.handler = async (event) => {
     } catch (parseError) {
       return createResponse(
         400,
-        JSON.stringify({ message: "Invalid JSON in request body" })
+        ({ message: "Invalid JSON in request body" })
       );
     }
 
@@ -55,7 +55,7 @@ exports.handler = async (event) => {
     if (!title || typeof price !== "number" || typeof count !== "number") {
       return createResponse(
         400,
-        JSON.stringify({ message: "Invalid product data" })
+        ({ message: "Invalid product data" })
       );
     }
 
@@ -94,21 +94,22 @@ exports.handler = async (event) => {
       console.error("Database error:", dbError);
       throw new Error("Failed to save to database");
     }
+    console.log("Transaction in createProduct is uccessful");
     return createResponse(
       201,
-      JSON.stringify({
+      {
         id: productId,
         title,
         description,
         price,
         count,
-      })
+      }
     );
   } catch (error) {
     console.error("Error:", error);
     return createResponse(
       500,
-      JSON.stringify({ message: "Internal server error" })
+      ({ message: "Internal server error" })
     );
   }
 };

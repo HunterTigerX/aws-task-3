@@ -44,6 +44,7 @@ exports.handler = async (event) => {
     const signedUrl = await getSignedUrl(s3Client, command, {
       expiresIn: 3600, // URL expires in 1 hour
     });
+    console.log("Execution of importProductsFile was successful");
     return createResponse(200, signedUrl);
   } catch (error) {
     console.error("Error:", error);

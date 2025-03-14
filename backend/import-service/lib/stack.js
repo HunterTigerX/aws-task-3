@@ -8,6 +8,7 @@ const s3deploy = require("aws-cdk-lib/aws-s3-deployment");
 const iam = require("aws-cdk-lib/aws-iam");
 const path = require("path");
 const cr = require("aws-cdk-lib/custom-resources");
+const sqs = require("aws-cdk-lib/aws-sqs");
 
 class ImportStack extends Stack {
   constructor(scope, id, props) {
@@ -91,8 +92,17 @@ class ImportStack extends Stack {
         "s3:CopyObject",
         "s3:DeleteObject",
         "s3:HeadObject",
+        "sqs:ReceiveMessage",
+        "sqs:DeleteMessage",
+        "sqs:GetQueueAttributes",
+        "sqs:SendMessage",
+        "sqs:SendMessageBatch",
       ],
-      resources: [`${uploadBucket.bucketArn}/*`],
+      resources: [
+        uploadBucket.bucketArn, // For bucket-level operations
+        `${uploadBucket.bucketArn}/*`, // For object-level operations
+        `arn:aws:sqs:${this.region}:${this.account}:catalogItemsQueue`, // For SQS operations
+      ],
     });
 
     // Attach the policy to the Lambda function
@@ -107,34 +117,19 @@ class ImportStack extends Stack {
     // Deploy upload bucket
     this.deployUploadContent(uploadBucket);
 
-    // Create IAM policy for Import S3 access
-    const s3Policy = new iam.PolicyStatement({
-      effect: iam.Effect.ALLOW,
-      actions: [
-        "s3:PutObject",
-        "s3:GetObject",
-        "s3:ListBucket",
-        "s3:CopyObject",
-        "s3:DeleteObject",
-        "s3:HeadObject",
-      ],
-      resources: [`${uploadBucket.bucketArn}/uploaded/*`],
-    });
-
     // Create Lambda functions
     const { importProductsFile, importFileParser } = this.createLambdaFunctions(
       dbPolicies,
       uploadBucket,
       lambdaRole,
-      importRole,
-      s3Policy
+      importRole
     );
 
     // Attach the policy to the Lambda Import function
-    importRole.addToPolicy(s3Policy);
+    importRole.addToPolicy(dbPolicies);
 
     // Attach the policy to the Lambda function
-    importFileParser.addToRolePolicy(s3Policy);
+    importFileParser.addToRolePolicy(dbPolicies);
 
     // Add S3 notification for the 'uploaded' prefix
     uploadBucket.addEventNotification(
@@ -166,13 +161,7 @@ class ImportStack extends Stack {
     });
   }
 
-  createLambdaFunctions(
-    dbPolicies,
-    bucketNameUpload,
-    lambdaRole,
-    importRole,
-    s3Policy
-  ) {
+  createLambdaFunctions(dbPolicies, bucketNameUpload, lambdaRole, importRole) {
     // Create importProductsFile Lambda
     const importProductsFile = new lambda.Function(this, "ImportProductsFile", {
       runtime: lambda.Runtime.NODEJS_18_X,
@@ -185,8 +174,14 @@ class ImportStack extends Stack {
       },
       role: lambdaRole,
     });
-    importProductsFile.addToRolePolicy(s3Policy);
     importProductsFile.addToRolePolicy(dbPolicies);
+
+    // Import existing queue by name
+    const queue = sqs.Queue.fromQueueArn(
+      this,
+      "ImportedQueue",
+      `arn:aws:sqs:${this.region}:${this.account}:catalogItemsQueue`
+    );
 
     // Create importFileParser Lambda
     const importFileParser = new lambda.Function(this, "ImportFileParser", {
@@ -197,9 +192,14 @@ class ImportStack extends Stack {
       ),
       environment: {
         BUCKET_NAME: bucketNameUpload.bucketName,
+        SQS_QUEUE_URL: queue.queueUrl,
       },
       role: importRole,
     });
+
+    // Granting the necessary permissions to the Lambda function to send messages to SQS
+    queue.grantSendMessages(importFileParser);
+
     importFileParser.addToRolePolicy(dbPolicies);
     return {
       importProductsFile,

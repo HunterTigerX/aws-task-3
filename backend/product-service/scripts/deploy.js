@@ -21,6 +21,7 @@ async function deploy() {
   try {
     console.log("Installing UUID");
     execute("npm install", path.join(__dirname, "../lambda/createProduct"));
+    execute("npm install", path.join(__dirname, "../lambda/catalogBatchProcess"));
 
     // Build and deploy app
     console.log("Installing app dependencies...");
