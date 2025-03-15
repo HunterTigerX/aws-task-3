@@ -1,0 +1,13 @@
+{
+  "name": "aws",
+  "version": "0.1.0",
+  "bin": {
+    "aws": "bin/app.js"
+  },
+  "scripts": {
+    "deploy": "node scripts/deploy.js"
+  },
+  "dependencies": {
+    "sinon": "^19.0.2"
+  }
+}
