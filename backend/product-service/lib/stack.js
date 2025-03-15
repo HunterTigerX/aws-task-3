@@ -193,7 +193,7 @@ class WebsiteStack extends Stack {
 
   createWebsiteBucket() {
     return new s3.Bucket(this, "WebsiteBucket", {
-      bucketName: "websitebuckethtx2",
+      bucketName: "websitebuckethtx3",
       removalPolicy: cdk.RemovalPolicy.RETAIN,
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       encryption: s3.BucketEncryption.S3_MANAGED, // Adding encryption

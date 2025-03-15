@@ -146,7 +146,7 @@ class ImportStack extends Stack {
 
   createWebsiteBucket() {
     return new s3.Bucket(this, "UploadBucket", {
-      bucketName: "uploadbuckethtx2",
+      bucketName: "uploadbuckethtx3",
       allowedHeaders: ["*"],
       allowedMethods: [
         s3.HttpMethods.GET,

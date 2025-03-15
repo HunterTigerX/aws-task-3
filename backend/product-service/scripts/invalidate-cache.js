@@ -12,7 +12,7 @@ async function invalidateCache() {
     // Find the distribution with your bucket name
     const distribution = distributions.DistributionList.Items.find(
       dist => dist.Origins.Items.some(origin => 
-        origin.DomainName.includes('websitebuckethtx2')
+        origin.DomainName.includes('websitebuckethtx3')
       )
     );
 

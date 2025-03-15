@@ -45,10 +45,6 @@ jest.mock("aws-sdk", () => {
 
 // Mocking csv-parser
 jest.mock("csv-parser", () => {
-  let mockS3Client;
-  let mockSQS;
-  let mockReadStream;
-
   return jest.fn(() => ({
     on: jest.fn().mockImplementation((event, callback) => {
       if (event === "data") {
@@ -70,10 +66,8 @@ describe("importFileParser", () => {
     awsMock.restore("S3");
     awsMock.restore("SQS");
     jest.clearAllMocks();
-    jest.resetModules()
+    jest.resetModules();
   });
-
-  
 
   it("should process CSV file correctly", async () => {
     s3Client = new AWS.S3();
@@ -100,7 +94,7 @@ describe("importFileParser", () => {
       "CSV processing completed successfully and file moved to parsed folder"
     );
   });
-  
+
   it("should skip processing if file is not in uploaded folder", async () => {
     const event = {
       Records: [
@@ -120,8 +114,7 @@ describe("importFileParser", () => {
       consoleSpy.calledWith("File not in uploaded folder. Skipping processing.")
     ).toBeTruthy();
   });
- 
-  
+
   it("should handle errors during CSV processing", async () => {
     // Mocking createReadStream to throw
     const mockStream = {

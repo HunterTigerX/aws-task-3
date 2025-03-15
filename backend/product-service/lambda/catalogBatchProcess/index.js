@@ -47,7 +47,11 @@ exports.handler = async (event) => {
       // Converting price and count to numbers
       product.price = Number(product.price);
       product.count = Number(product.count);
-
+      console.log('product description', product.description)
+      console.log('product title', product.title)
+      console.log('product count', product.count)
+      console.log('product price', product.price)
+      
       const { title, description, price, count } = product;
 
       if (!title || typeof price !== "number" || typeof count !== "number") {

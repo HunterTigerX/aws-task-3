@@ -87,12 +87,7 @@ exports.handler = async (event) => {
         .on("end", async () => {
           // Send any remaining messages
           if (messagesBatch.length > 0) {
-            try {
-              await sendBatchToSQS(queueUrl, messagesBatch);
-            } catch (error) {
-              reject(error);
-              return;
-            }
+            await sendBatchToSQS(queueUrl, messagesBatch);
           }
           resolve();
         });
@@ -142,19 +137,3 @@ async function sendBatchToSQS(queueUrl, messages) {
   console.log("Batch sent successfully:", result);
   return result;
 }
-// async function sendBatchToSQS(queueUrl, messages) {
-//   console.log("Sending batch to SQS:", queueUrl);
-//   try {
-//     const result = await sqs
-//       .sendMessageBatch({
-//         QueueUrl: queueUrl,
-//         Entries: messages,
-//       })
-//       .promise();
-//     console.log("Batch sent successfully:", result);
-//     return result;
-//   } catch (error) {
-//     console.error("Error sending batch to SQS:", error);
-//     throw error; // Перебрасываем ошибку, чтобы она попала в .catch()
-//   }
-// }
