@@ -1,0 +1,30 @@
+{
+  "name": "aws",
+  "version": "0.1.0",
+  "bin": {
+    "aws": "bin/app.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "test": "jest",
+    "cdk": "cdk",
+    "deploy": "node scripts/deploy.js",
+    "build:app": "cd ../app && npm install && npm run build",
+    "invalidate-cache": "node scripts/invalidate-cache.js",
+    "coverage": "jest --coverage"
+  },
+  "devDependencies": {
+    "aws-cdk": "2.1005.0",
+    "aws-cdk-lib": "^2.185.0",
+    "aws-sdk": "^2.1692.0"
+  },
+  "dependencies": {
+    "@aws-sdk/s3-request-presigner": "^3.758.0",
+    "@types/aws-lambda": "^8.10.147",
+    "@types/node": "^22.13.10",
+    "aws-cdk": "^2.1005.0",
+    "aws-cdk-lib": "^2.185.0",
+    "constructs": "^10.4.2"
+  }
+}

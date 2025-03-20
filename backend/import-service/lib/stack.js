@@ -218,6 +218,21 @@ class ImportStack extends Stack {
       },
     });
 
+    // Import the Lambda function from AuthorizationStack to create Authorizer
+    const basicAuthorizer = lambda.Function.fromFunctionArn(
+      this,
+      "ImportedBasicAuthorizer",
+      cdk.Fn.importValue("BasicAuthorizerArn")
+    );
+
+    const authorizer = new apigateway.TokenAuthorizer(
+      this,
+      "ImportAuthorizer",
+      {
+        handler: basicAuthorizer,
+      }
+    );
+
     // Create /import endpoint
     const importResource = api.root.addResource("import");
 
@@ -228,6 +243,13 @@ class ImportStack extends Stack {
         requestParameters: {
           "method.request.querystring.name": true,
         },
+        authorizer: authorizer,
+        authorizationType: apigateway.AuthorizationType.CUSTOM,
+        methodResponses: [
+          {
+            statusCode: "200",
+          },
+        ],
       }
     );
   }
