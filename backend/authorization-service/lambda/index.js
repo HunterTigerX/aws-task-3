@@ -1,59 +1,58 @@
 const handler = async (event) => {
-    console.log('Event: ', JSON.stringify(event));
-  
-    if (!event.headers?.Authorization) {
-      return generatePolicy('user', 'Deny', event.methodArn, 401);
+  console.log("Event: ", JSON.stringify(event));
+
+  if (!event.authorizationToken) {
+    return generatePolicy("user", "Deny", event.methodArn, {
+      custom: "401",
+    });
+  }
+
+  try {
+    // Get the stored credentials from environment variable
+    const storedCredentials = process.env.CREDENTIALS;
+    console.log("Stored credentials:", storedCredentials);
+
+    // Get the authorization token
+    const authToken = event.authorizationToken;
+
+    if (authToken === process.env.login) {
+      return generatePolicy("user", "Allow", event.methodArn, {
+        custom: "200",
+      });
+    } else {
+      // Invalid credentials, deny with 403 context
+      return generatePolicy("user", "Deny", event.methodArn, {
+        custom: "403",
+      });
     }
-  
-    try {
-      const authHeader = event.headers.Authorization;
-      const encodedCreds = authHeader.split(' ')[1];
-      const plainCreds = Buffer.from(encodedCreds, 'base64').toString().split(':');
-      const username = plainCreds[0];
-      const password = plainCreds[1];
-  
-      console.log(`username: ${username}, password: ${password}`);
-  
-      const storedCredentials = process.env.CREDENTIALS.split(',');
-      const userCredentials = storedCredentials
-        .map(pair => pair.split('='))
-        .find(([user]) => user === username);
-  
-      const storedPassword = userCredentials ? userCredentials[1] : null;
-  
-      if (storedPassword && storedPassword === password) {
-        return generatePolicy(username, 'Allow', event.methodArn, 200);
-      } else {
-        return generatePolicy(username, 'Deny', event.methodArn, 403);
-      }
-    } catch (error) {
-      return generatePolicy('user', 'Deny', event.methodArn, 403);
-    }
-  };
-  
-  const generatePolicy = (principalId, effect, resource, statusCode) => {
-    const authResponse = {
-      principalId: principalId
-    };
-  
-    if (effect && resource) {
-      const policyDocument = {
-        Version: '2012-10-17',
-        Statement: [{
-          Action: 'execute-api:Invoke',
+  } catch (error) {
+    console.error("Error:", error);
+    return generatePolicy("user", "Deny", event.methodArn, {
+      custom: "403",
+    });
+  }
+};
+
+const generatePolicy = (principalId, effect, resource, context) => {
+  const authResponse = {
+    principalId: principalId,
+    policyDocument: {
+      Version: "2012-10-17",
+      Statement: [
+        {
+          Action: "execute-api:Invoke",
           Effect: effect,
-          Resource: resource
-        }]
-      };
-      authResponse.policyDocument = policyDocument;
-    }
-  
-    authResponse.context = {
-      statusCode: statusCode
-    };
-  
-    return authResponse;
+          Resource: resource,
+        },
+      ],
+    },
   };
-  
-  module.exports = { handler };
-  
+
+  if (context) {
+    authResponse.context = context;
+  }
+
+  return authResponse;
+};
+
+module.exports = { handler };

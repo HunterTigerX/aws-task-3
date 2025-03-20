@@ -19,6 +19,12 @@ function execute(command, cwd) {
 
 async function deploy() {
   try {
+
+    console.log("Installing env deps");
+    execute("npm install", path.join(__dirname, "../lib"));
+    execute("npm install", path.join(__dirname, "../lambda"));
+
+
     // Deploy infrastructure
     console.log("Installing CDK dependencies...");
     execute("npm install --legacy-peer-deps");

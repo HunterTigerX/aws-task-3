@@ -17,7 +17,8 @@
   "devDependencies": {
     "aws-cdk": "2.1005.0",
     "aws-cdk-lib": "^2.185.0",
-    "aws-sdk": "^2.1692.0"
+    "aws-sdk": "^2.1692.0",
+    "dotenv": "^16.4.7"
   },
   "dependencies": {
     "@aws-sdk/s3-request-presigner": "^3.758.0",
