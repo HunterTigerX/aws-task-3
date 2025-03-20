@@ -5,7 +5,6 @@ import { useQuery, useQueryClient, useMutation } from "react-query";
 import React from "react";
 
 export function useAvailableProducts() {
-
   return useQuery<AvailableProduct[], AxiosError>(
     "available-products",
     async () => {
@@ -16,7 +15,7 @@ export function useAvailableProducts() {
             Authorization: `Basic ${localStorage.getItem(
               "authorization_token"
             )}`,
-          }
+          },
         }
       );
       return res.data;
