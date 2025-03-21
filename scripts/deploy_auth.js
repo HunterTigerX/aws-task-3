@@ -19,19 +19,10 @@ function execute(command, cwd) {
 
 async function deploy() {
   try {
-  
-    console.log("Deploying product infrastructure...");
-    execute("npm run deploy", path.join(__dirname, "../backend/product-service"));
 
 
     console.log("Deploying authorization infrastructure...");
     execute("npm run deploy", path.join(__dirname, "../backend/authorization-service"));
-
-    console.log("Deploying import infrastructure...");
-    execute("npm run deploy", path.join(__dirname, "../backend/import-service"));
-
-    console.log("\nDeployment completed successfully!");
-    console.log("You can find the CloudFront URL in the stack outputs above");
   } catch (error) {
     console.error("Deployment failed:", error);
     process.exit(1);

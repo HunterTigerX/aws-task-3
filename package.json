@@ -5,7 +5,10 @@
     "aws": "bin/app.js"
   },
   "scripts": {
-    "deploy": "node scripts/deploy.js"
+    "deploy": "node scripts/deploy.js",
+    "deploy_auth": "node scripts/deploy_auth.js",
+    "deploy_prod": "node scripts/deploy_prod.js",
+    "deploy_import": "node scripts/deploy_import.js"
   },
   "dependencies": {
     "sinon": "^19.0.2"

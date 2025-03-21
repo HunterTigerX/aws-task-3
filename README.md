@@ -1,39 +1,35 @@
-P.S. After I made screenshots I changed AWS account so the URL in PR to cloudfront was changed, but everything is working the same.  
-1. Task: https://github.com/rolling-scopes-school/aws/blob/main/aws-developer/06_async_microservices_communication/task.md
+To get 401 error, you need to run in the console in your browser  
+localStorage.removeItem("authorization_token");
+To get 403 error, you need to run in the console in your browser  
+localStorage.setItem("authorization_token", "anything")
+To get 200 and a successful import, you need to run in the console in your browser  
+localStorage.setItem("authorization_token", "aHVudGVydGlnZXJ4PVRFU1RfUEFTU1dPUkQ=")
+This command will show you the current value of the token in your browser
+localStorage.getItem("authorization_token")
+Test authorizer in AWS both work with `Basic aHVudGVydGlnZXJ4PVRFU1RfUEFTU1dPUkQ= `and `aHVudGVydGlnZXJ4PVRFU1RfUEFTU1dPUkQ=` for testing purposes.
+
+1. Task: https://github.com/rolling-scopes-school/aws/blob/main/aws-developer/07_authorization/task.md
 2. Screenshot:  
-At first I created a JSON data
-![image](https://github.com/user-attachments/assets/7bc9aba8-7422-4388-b45b-cbf48f02795f)
-Then I converted it to CSV and uploaded at the front-end side
-![image](https://github.com/user-attachments/assets/ad388590-2a62-4beb-a0e2-e10c405ccb4a)
-catalogBatchProcess cloudwatch logs
-![image](https://github.com/user-attachments/assets/dcd7a989-fa26-47c4-8541-64c67c824b8c)
-![image](https://github.com/user-attachments/assets/b3ff271e-c30a-4ecf-b25b-efee16da29fb)
-ImportProductsFile cloudwatch logs
-![image](https://github.com/user-attachments/assets/b7c3f9ec-c82b-45cf-884b-2037a4fba71f)
-ImportFileParser cloudwatch logs
-![image](https://github.com/user-attachments/assets/ee83158d-bb9a-48c2-84eb-3488e1a6a0bd)
-Amazon SNS Topic was created and subscriptions were added
-![image](https://github.com/user-attachments/assets/4200e3e5-f84d-43be-a97d-851c9c2afcde)
-Amazon SQS queue was created and working fine
-![image](https://github.com/user-attachments/assets/754a6aa8-6696-4807-bca2-c62853faa7d0)
-Email subscription is working fine
-![image](https://github.com/user-attachments/assets/7dce6b45-c030-4b18-b5db-c466dff63f7a)
-![image](https://github.com/user-attachments/assets/76a2988a-dd19-448d-953e-093812837ce3)
-The new records are now shown on our FE app.
-![image](https://github.com/user-attachments/assets/f8bd9957-8e09-4db1-ba28-03440fcb0307)
-![image](https://github.com/user-attachments/assets/0c15bfca-5d77-4e6f-a0d5-1bd59223786d)
-Tests have almost 100% coverage
-![image](https://github.com/user-attachments/assets/dab1199c-598e-482b-834d-eb5087706c9a)
-![image](https://github.com/user-attachments/assets/9f9a6cf4-d40c-4583-a7fc-bcdccbc90a31)
-![image](https://github.com/user-attachments/assets/b06ac401-d46f-4340-b76c-2dada052c454)
+This is our encoded example  
+![image](https://github.com/user-attachments/assets/bfb01b6b-a94e-4588-95a2-479a55413a03)
+This is 401 error if the header is empty on FE side
+![image](https://github.com/user-attachments/assets/8bbbb4bb-5eb0-48da-943b-47f75515a9f1)
+This is 403 error if the token is invalid on FE side
+![image](https://github.com/user-attachments/assets/829e922f-1a39-42a0-87ab-327a0c6b445d)
+This is 200 success, if the token is valid on FE side
+![image](https://github.com/user-attachments/assets/6de0085b-edf0-4299-a3de-1dfda3a16002)
+This is 200 success, if the token is valid in AWS
+![image](https://github.com/user-attachments/assets/d70c04e6-7e86-41f3-83e8-b66256cf7e0a)
+This is 403 error if the token is invalid in AWS
+![image](https://github.com/user-attachments/assets/7b2b1e3b-43a0-4e08-be83-23da88d48b68)
+This is 401 error if the header is empty in AWS
+![image](https://github.com/user-attachments/assets/a707011f-1c2a-4f85-9332-4abc09d630b8)
 3. Deploy: https://d138sljllinulj.cloudfront.net
-4. Done 15.03.2025 / deadline 16.03.2025
+4. Done 21.03.2025 / deadline 23.03.2025
 5. Score: 100 / 100
 - Basic Scope
-- [x] **+0** AWS CDK Stack contains configuration for catalogBatchProcess function
-- [x] **+0** AWS CDK Stack contains policies to allow lambda catalogBatchProcess function to interact with SNS and SQS
-- [x] **+0** AWS CDK Stack contains configuration for SQS catalogItemsQueue
-- [x] **+70** AWS CDK Stack contains configuration for SNS Topic createProductTopic and email subscription
+- [x] **+0** authorization-service is added to the repo, has correct basicAuthorizer lambda and correct AWS CDK Stack
+- [x] **+0** Import Service AWS CDK Stack has authorizer configuration for the importProductsFile lambda. Request to the importProductsFile lambda should work only with correct authorization_token being decoded and checked by basicAuthorizer lambda. Response should be in 403 HTTP status if access is denied for this user (invalid authorization_token) and in 401 HTTP status if Authorization header is not provided.
+- [x] **+70** Client application is updated to send "Authorization: Basic authorization_token" header on import. Client should get authorization_token value from browser localStorage
 - Additional (optional) tasks
-- [x] **+15** catalogBatchProcess lambda is covered by unit tests
-- [x] **+15** set a Filter Policy for SNS createProductTopic in AWS CDK Stack and create an additional email subscription to distribute messages to different emails depending on the filter for any product attribute
+- [x] **+30** Client application should display alerts for the responses in 401 and 403 HTTP statuses. This behavior should be added to the nodejs-aws-fe-main/src/index.tsx file.

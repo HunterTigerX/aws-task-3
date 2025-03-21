@@ -7,6 +7,22 @@ import { BrowserRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "react-query";
 import { ReactQueryDevtools } from "react-query/devtools";
 import { theme } from "~/theme";
+import axios from "axios";
+
+axios.interceptors.response.use(
+  (response) => {
+    console.log("Successful response");
+    return response;
+  },
+  (error) => {
+    if (error.response?.status === 401) {
+      alert("Error 401: You are not authorized");
+    } else if (error.response?.status === 403) {
+      alert("Error 403: Access Denied.");
+    }
+    return Promise.reject(error);
+  }
+);
 
 const queryClient = new QueryClient({
   defaultOptions: {

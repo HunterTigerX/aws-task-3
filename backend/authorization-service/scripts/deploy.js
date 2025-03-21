@@ -19,19 +19,20 @@ function execute(command, cwd) {
 
 async function deploy() {
   try {
-  
-    console.log("Deploying product infrastructure...");
-    execute("npm run deploy", path.join(__dirname, "../backend/product-service"));
+
+    console.log("Installing env deps");
+    execute("npm install", path.join(__dirname, "../lib"));
+    execute("npm install", path.join(__dirname, "../lambda"));
 
 
-    console.log("Deploying authorization infrastructure...");
-    execute("npm run deploy", path.join(__dirname, "../backend/authorization-service"));
+    // Deploy infrastructure
+    console.log("Installing CDK dependencies...");
+    execute("npm install --legacy-peer-deps");
 
-    console.log("Deploying import infrastructure...");
-    execute("npm run deploy", path.join(__dirname, "../backend/import-service"));
+    console.log("Deploying infrastructure...");
+    execute("cdk deploy --require-approval never");
 
-    console.log("\nDeployment completed successfully!");
-    console.log("You can find the CloudFront URL in the stack outputs above");
+    console.log("\nImport deployment completed successfully!");
   } catch (error) {
     console.error("Deployment failed:", error);
     process.exit(1);

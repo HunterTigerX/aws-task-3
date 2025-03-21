@@ -10,6 +10,13 @@ const path = require("path");
 const cr = require("aws-cdk-lib/custom-resources");
 const sqs = require("aws-cdk-lib/aws-sqs");
 
+const headers = {
+  "Access-Control-Allow-Origin": "'*'",
+  "Access-Control-Allow-Methods": "'*'",
+  "Access-Control-Allow-Headers":
+    "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'",
+};
+
 class ImportStack extends Stack {
   constructor(scope, id, props) {
     super(scope, id, props);
@@ -213,13 +220,44 @@ class ImportStack extends Stack {
       defaultCorsPreflightOptions: {
         allowOrigins: apigateway.Cors.ALL_ORIGINS,
         allowMethods: apigateway.Cors.ALL_METHODS,
-        allowHeaders: ["*"], // Разрешаем все заголовки
+        allowHeaders: apigateway.Cors.DEFAULT_HEADERS, // Разрешаем все заголовки
         allowCredentials: true, // Разрешаем передачу учетных данных
       },
     });
 
+    api.addGatewayResponse("UnauthorizedResponse", {
+      restApi: api,
+      type: apigateway.ResponseType.UNAUTHORIZED,
+      responseHeaders: headers,
+      statusCode: "401",
+    });
+
+    api.addGatewayResponse("AccessDeniedResponse", {
+      restApi: api,
+      type: apigateway.ResponseType.ACCESS_DENIED,
+      responseHeaders: headers,
+      statusCode: "403",
+    });
+
+    // Import the Lambda function from AuthorizationStack to create Authorizer
+    const basicAuthorizer = lambda.Function.fromFunctionArn(
+      this,
+      "ImportedBasicAuthorizer",
+      cdk.Fn.importValue("BasicAuthorizerArn")
+    );
+
+    const authorizer = new apigateway.TokenAuthorizer(
+      this,
+      "ImportAuthorizer",
+      {
+        identitySource: "method.request.header.Authorization",
+        handler: basicAuthorizer,
+      }
+    );
+
     // Create /import endpoint
     const importResource = api.root.addResource("import");
+
 
     importResource.addMethod(
       "GET",
@@ -228,8 +266,45 @@ class ImportStack extends Stack {
         requestParameters: {
           "method.request.querystring.name": true,
         },
+        authorizer: authorizer,
+        authorizationType: apigateway.AuthorizationType.CUSTOM,
+        methodResponses: [
+          {
+            statusCode: "200",
+            responseParameters: {
+              "method.response.header.Access-Control-Allow-Origin": true,
+            },
+          },
+        ],
       }
     );
+    // importResource.addMethod(
+    //   "GET",
+    //   new apigateway.LambdaIntegration(importProductsFile, {
+    //     proxy: false,
+    //     integrationResponses: [
+    //       {
+    //         statusCode: "200",
+    //         responseParameters: {
+    //           'method.response.header.Access-Control-Allow-Origin': "'*'"
+    //         }
+    //       }
+    //     ],
+    //   }),
+    //   {
+    //     requestParameters: {
+    //       "method.request.querystring.name": true,
+    //     },
+    //     methodResponses: [
+    //       {
+    //         statusCode: "200",
+    //         responseParameters: {
+    //           "method.response.header.Access-Control-Allow-Origin": true,
+    //         },
+    //       },
+    //     ],
+    //   }
+    // );
   }
 
   deployUploadContent(bucket) {
