@@ -10,7 +10,10 @@ import { theme } from "~/theme";
 import axios from "axios";
 
 axios.interceptors.response.use(
-  (response) => response, // Успешный ответ
+  (response) => {
+    console.log("Successful response");
+    return response;
+  },
   (error) => {
     if (error.response?.status === 401) {
       alert("Error 401: You are not authorized");
