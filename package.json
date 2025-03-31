@@ -8,9 +8,12 @@
     "deploy": "node scripts/deploy.js",
     "deploy_auth": "node scripts/deploy_auth.js",
     "deploy_prod": "node scripts/deploy_prod.js",
-    "deploy_import": "node scripts/deploy_import.js"
+    "deploy_import": "node scripts/deploy_import.js",
+    "deploy_cart": "node scripts/deploy_cart.js"
   },
   "dependencies": {
+    "@vendia/serverless-express": "^4.12.6",
+    "aws-cdk-lib": "^2.186.0",
     "sinon": "^19.0.2"
   }
 }

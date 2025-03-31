@@ -1,0 +1,9 @@
+{
+  "name": "aws",
+  "version": "0.1.0",
+  "main": "index.js",
+  "dependencies": {
+    "@codegenie/serverless-express": "^4.16.0",
+    "@nestjs/core": "^11.0.12"
+  }
+}
