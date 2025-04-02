@@ -1,0 +1,9 @@
+{
+  "name": "aws",
+  "version": "0.1.0",
+  "main": "index.js",
+  "dependencies": {
+    "pg": "^8.11.0",
+    "aws-sdk": "^2.1692.0"
+  }
+}

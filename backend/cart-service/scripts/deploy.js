@@ -19,8 +19,11 @@ function execute(command, cwd) {
 
 async function deploy() {
   try {
-    console.log("Installing Deps");
-    execute("npm install", path.join(__dirname, "../lambda"));
+    console.log("Installing Deps nest");
+    execute("npm install", path.join(__dirname, "../lambda/nest"));
+
+    console.log("Installing Deps db");
+    execute("npm install", path.join(__dirname, "../lambda/db-init"));
 
     // Build and deploy app
     console.log("Installing app dependencies...");
