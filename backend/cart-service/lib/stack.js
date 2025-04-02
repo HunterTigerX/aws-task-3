@@ -3,9 +3,9 @@ const { Stack, CustomResource, CfnOutput } = require("aws-cdk-lib");
 const lambda = require("aws-cdk-lib/aws-lambda");
 const apigateway = require("aws-cdk-lib/aws-apigateway");
 const path = require("path");
-const ec2 = require('aws-cdk-lib/aws-ec2');
-const rds = require('aws-cdk-lib/aws-rds');
-const cr = require('aws-cdk-lib/custom-resources');
+const ec2 = require("aws-cdk-lib/aws-ec2");
+const rds = require("aws-cdk-lib/aws-rds");
+const cr = require("aws-cdk-lib/custom-resources");
 
 class CartStack extends Stack {
   constructor(scope, id, props) {
@@ -45,8 +45,8 @@ class CartStack extends Stack {
     });
 
     // Add VPC Endpoints
-    vpc.addInterfaceEndpoint('SecretsManagerEndpoint', {
-      service: ec2.InterfaceVpcEndpointAwsService.SECRETS_MANAGER
+    vpc.addInterfaceEndpoint("SecretsManagerEndpoint", {
+      service: ec2.InterfaceVpcEndpointAwsService.SECRETS_MANAGER,
     });
 
     // Create RDS Instance
@@ -62,23 +62,27 @@ class CartStack extends Stack {
       databaseName: "cartdb",
       credentials: rds.Credentials.fromGeneratedSecret("postgres"),
       allocatedStorage: 20,
-      publiclyAccessible: true, // For development only. Remove in production
+      publiclyAccessible: true, // For development only. Remove in production,
+      maxAllocatedStorage: 25,
+      deletionProtection: false,
     });
 
-     // Add initialization script
-     const initializerFunction = new lambda.Function(this, 'DBInitFunction', {
+    // Add initialization script
+    const initializerFunction = new lambda.Function(this, "DBInitFunction", {
       runtime: lambda.Runtime.NODEJS_18_X,
-      handler: 'index.handler',
-      code: lambda.Code.fromAsset(path.join(__dirname, '../lambda/db-init')),
+      handler: "index.handler",
+      code: lambda.Code.fromAsset(path.join(__dirname, "../lambda/db-init")),
       vpc,
       vpcSubnets: {
-        subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS
+        subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
       },
       environment: {
+        DB_HOST: dbInstance.dbInstanceEndpointAddress,
+        DB_PORT: dbInstance.dbInstanceEndpointPort,
         DB_SECRET_ARN: dbInstance.secret.secretArn,
-        DB_NAME: 'cartdb',
+        DB_NAME: "cartdb",
       },
-      timeout: cdk.Duration.minutes(5)
+      timeout: cdk.Duration.minutes(5),
     });
 
     // Grant permissions to read the secret
@@ -88,26 +92,31 @@ class CartStack extends Stack {
     dbInstance.connections.allowFrom(
       initializerFunction,
       ec2.Port.tcp(5432),
-      'Allow Lambda to connect to RDS'
+      "Allow Lambda to connect to RDS"
     );
 
+    /*
+    // Allow Lambda to access RDS
+    dbInstance.connections.allowDefaultPortFromAnyIpv4();
+    */
+
     // Create a custom resource provider
-    const provider = new cr.Provider(this, 'DBInitProvider', {
+    const provider = new cr.Provider(this, "DBInitProvider", {
       onEventHandler: initializerFunction,
-      logRetention: cdk.aws_logs.RetentionDays.ONE_DAY
+      logRetention: cdk.aws_logs.RetentionDays.ONE_DAY,
     });
 
     // Create a custom resource to trigger the initialization
-    new cdk.CustomResource(this, 'DBInit', {
+    new cdk.CustomResource(this, "DBInit", {
       serviceToken: provider.serviceToken,
       properties: {
-        timestamp: Date.now()
-      }
+        timestamp: Date.now(),
+      },
     });
 
     // Output the DB endpoint
-    new CfnOutput(this, 'DbEndpoint', {
-      value: dbInstance.instanceEndpoint.hostname
+    new CfnOutput(this, "DbEndpoint", {
+      value: dbInstance.instanceEndpoint.hostname,
     });
   }
 }
