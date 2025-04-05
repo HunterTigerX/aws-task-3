@@ -1,61 +1,108 @@
-const { Client } = require('pg');
-const AWS = require('aws-sdk');
-const fs = require('fs');
-const path = require('path');
-
-const secretsManager = new AWS.SecretsManager();
+const { Client } = require("pg");
+const fs = require("fs");
+const path = require("path");
 
 exports.handler = async (event, context) => {
-  console.log('Event:', JSON.stringify(event));
-  
+  console.log("Event:", JSON.stringify(event));
+
+  const host = process.env.DB_HOST;
+  const port = parseInt(process.env.DB_PORT || "5432");
+  const user = process.env.DB_USERNAME;
+  const password = process.env.DB_PASSWORD;
+  const database = process.env.DB_NAME;
+
+  console.log("DB_HOST:", process.env.DB_HOST);
+  console.log("DB_PORT:", process.env.DB_PORT);
+  console.log("DB_USERNAME:", process.env.DB_USERNAME);
+  console.log("DB_PASSWORD:", process.env.DB_PASSWORD);
+  console.log("DB_NAME:", process.env.DB_NAME);
+
   // Handle delete event
-  if (event.RequestType === 'Delete') {
+  if (event.RequestType === "Delete") {
     return {
       PhysicalResourceId: event.PhysicalResourceId,
-      Status: 'SUCCESS'
+      Status: "SUCCESS",
     };
   }
 
-  let client;
-  try {
-    const secretData = await secretsManager.getSecretValue({
-      SecretId: process.env.DB_SECRET_ARN
-    }).promise();
-    
-    const secret = JSON.parse(secretData.SecretString);
-    
-    client = new Client({
-      host: secret.host,
-      port: secret.port,
-      database: process.env.DB_NAME,
-      user: secret.username,
-      password: secret.password,
+  async function createDatabase() {
+    // Connecting to the default 'postgres' database
+    const client = new Client({
+      host,
+      port,
+      user,
+      password,
+      database,
+      ssl: {
+        rejectUnauthorized: false,
+      },
     });
-    
-    await client.connect();
-    
-    // Read and execute SQL file
-    const sqlFile = path.join(__dirname, 'init.sql');
-    const sqlScript = fs.readFileSync(sqlFile, 'utf8');
-    await client.query(sqlScript);
 
-    return {
-      PhysicalResourceId: 'db-init-' + Date.now(),
-      Status: 'SUCCESS',
-      Data: {
-        Message: 'Database initialized successfully'
+    try {
+      await client.connect();
+      // Check if database exists
+      const checkDb = await client.query(
+        "SELECT 1 FROM pg_database WHERE datname = $1",
+        ["cartdb"]
+      );
+
+      if (checkDb.rows.length === 0) {
+        // Create the database if it doesn't exist
+        await client.query("CREATE DATABASE cartdb");
+        console.log("Database 'cartdb' created successfully");
       }
-    };
-  } catch (error) {
-    console.error('Database initialization failed:', error);
-    return {
-      PhysicalResourceId: event.PhysicalResourceId || 'failed-init',
-      Status: 'FAILED',
-      Reason: error.message
-    };
-  } finally {
-    if (client) {
+    } catch (error) {
+      console.error("Error creating database:", error);
+    } finally {
       await client.end();
     }
   }
+
+  async function runSql() {
+    // Connecting to the default 'postgres' database
+    const client = new Client({
+      host,
+      port,
+      user,
+      password,
+      database,
+      ssl: {
+        rejectUnauthorized: false,
+      },
+    });
+
+    const sql = fs
+      .readFileSync(path.join(__dirname, "./create.sql"))
+      .toString();
+    const sql2 = fs.readFileSync(path.join(__dirname, "./fill.sql")).toString();
+
+    try {
+      await client.connect();
+      try {
+        await client.query(sql);
+        console.log("SQL script 1 executed successfully");
+      } catch (error) {
+        console.error("Error executing SQL script 1:", error);
+      }
+
+      try {
+        await client.query(sql2);
+        console.log("SQL script 2 executed successfully");
+      } catch (error) {
+        console.error("Error executing SQL script2:", error);
+      }
+    } catch (error) {
+      console.error("Error executing one of the SQL scripts:", error);
+    } finally {
+      await client.end();
+    }
+  }
+
+  // Run the scripts
+  async function initialize() {
+    await createDatabase();
+    await runSql();
+  }
+
+  initialize();
 };

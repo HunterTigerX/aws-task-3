@@ -4,20 +4,81 @@ const lambda = require("aws-cdk-lib/aws-lambda");
 const apigateway = require("aws-cdk-lib/aws-apigateway");
 const path = require("path");
 const ec2 = require("aws-cdk-lib/aws-ec2");
-const rds = require("aws-cdk-lib/aws-rds");
 const cr = require("aws-cdk-lib/custom-resources");
 
 class CartStack extends Stack {
   constructor(scope, id, props) {
     super(scope, id, props);
 
+    const hostName = process.env.DB_HOST || "postgres";
+    const port = process.env.DB_PORT || "5432";
+    const username = process.env.DB_USERNAME || "postgres";
+    const password = process.env.DB_PASSWORD || "postgres";
+    const databaseName = process.env.DB_NAME || "cartdb";
+
+    // Create VPC
+    const vpc = new ec2.Vpc(this, "CartVPC", {
+      maxAzs: 2,
+      subnetConfiguration: [
+        {
+          cidrMask: 24,
+          name: "Public",
+          subnetType: ec2.SubnetType.PUBLIC,
+        },
+        {
+          cidrMask: 24,
+          name: "Private",
+          subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
+        },
+      ],
+    });
+
+    // Create Security Group for Lambda
+    const lambdaSecurityGroup = new ec2.SecurityGroup(
+      this,
+      "LambdaSecurityGroup",
+      {
+        vpc,
+        description: "Security group for Lambda function",
+        allowAllOutbound: true,
+      }
+    );
+
     // Create Lambda function
     const nestLambda = new lambda.Function(this, "NestJsLambda", {
       runtime: lambda.Runtime.NODEJS_18_X,
-      handler: "lambda.handler",
-      code: lambda.Code.fromAsset(path.join(__dirname, "../lambda/nest")),
+      handler: "handler",
+      entry: path.join(__dirname, "../../../frontend-cart/src/lambda.ts"),
+      code: lambda.Code.fromAsset(
+        path.join(__dirname, "../../../frontend-cart/dist")
+      ),
       timeout: cdk.Duration.seconds(30),
       memorySize: 1024,
+      environment: {
+        NODE_ENV: "production",
+        DB_HOST: hostName,
+        DB_PORT: port,
+        DB_USERNAME: username,
+        DB_PASSWORD: password,
+        DB_NAME: databaseName,
+      },
+      bundling: {
+        minify: true,
+        sourceMap: true,
+        target: "node18",
+        nodeModules: [
+          "@nestjs/core",
+          "@nestjs/common",
+          "@nestjs/platform-express",
+          "@codegenie/serverless-express",
+        ],
+        externalModules: ["@aws-sdk/*", "aws-sdk"],
+        vpc,
+        vpcSubnets: {
+          subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
+        },
+        securityGroups: [lambdaSecurityGroup],
+      },
     });
 
     // Create API Gateway
@@ -30,7 +91,9 @@ class CartStack extends Stack {
     });
 
     // Integrate Lambda with API Gateway
-    const lambdaIntegration = new apigateway.LambdaIntegration(nestLambda);
+    const lambdaIntegration = new apigateway.LambdaIntegration(nestLambda, {
+      proxy: true,
+    });
 
     // Add proxy resource to handle all routes
     api.root.addProxy({
@@ -38,37 +101,22 @@ class CartStack extends Stack {
       anyMethod: true,
     });
 
-    // Create VPC
-    const vpc = new ec2.Vpc(this, "CartVPC", {
-      maxAzs: 2,
-      natGateways: 1,
-    });
+    // Reference to existing RDS instance security group
+    const dbSG = ec2.SecurityGroup.fromSecurityGroupId(
+      this,
+      "DBSecurityGroup",
+      "vpc-01c02411964bf41ca"
+    );
 
-    // Add VPC Endpoints
-    vpc.addInterfaceEndpoint("SecretsManagerEndpoint", {
-      service: ec2.InterfaceVpcEndpointAwsService.SECRETS_MANAGER,
-    });
+    // Allow Lambda to connect to RDS
+    dbSG.connections.allowFrom(
+      lambdaSecurityGroup,
+      ec2.Port.tcp(5432),
+      "Allow Lambda to connect to RDS"
+    );
 
-    // Create RDS Instance
-    const dbInstance = new rds.DatabaseInstance(this, "CartDatabase", {
-      engine: rds.DatabaseInstanceEngine.postgres({
-        version: rds.PostgresEngineVersion.VER_15,
-      }),
-      vpc,
-      instanceType: ec2.InstanceType.of(
-        ec2.InstanceClass.T3,
-        ec2.InstanceSize.MICRO
-      ),
-      databaseName: "cartdb",
-      credentials: rds.Credentials.fromGeneratedSecret("postgres"),
-      allocatedStorage: 20,
-      publiclyAccessible: true, // For development only. Remove in production,
-      maxAllocatedStorage: 25,
-      deletionProtection: false,
-    });
-
-    // Add initialization script
-    const initializerFunction = new lambda.Function(this, "DBInitFunction", {
+    // Create Lambda function
+    const initializerFunction = new lambda.Function(this, "DBFillFunction", {
       runtime: lambda.Runtime.NODEJS_18_X,
       handler: "index.handler",
       code: lambda.Code.fromAsset(path.join(__dirname, "../lambda/db-init")),
@@ -76,47 +124,36 @@ class CartStack extends Stack {
       vpcSubnets: {
         subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
       },
+      securityGroups: [lambdaSecurityGroup],
+      allowPublicSubnet: true,
       environment: {
-        DB_HOST: dbInstance.dbInstanceEndpointAddress,
-        DB_PORT: dbInstance.dbInstanceEndpointPort,
-        DB_SECRET_ARN: dbInstance.secret.secretArn,
-        DB_NAME: "cartdb",
+        DB_HOST: hostName,
+        DB_PORT: port,
+        DB_USERNAME: username,
+        DB_PASSWORD: password,
+        DB_NAME: databaseName,
       },
       timeout: cdk.Duration.minutes(5),
     });
 
-    // Grant permissions to read the secret
-    dbInstance.secret.grantRead(initializerFunction);
-
-    // Allow the Lambda to connect to RDS
-    dbInstance.connections.allowFrom(
-      initializerFunction,
-      ec2.Port.tcp(5432),
-      "Allow Lambda to connect to RDS"
-    );
-
-    /*
-    // Allow Lambda to access RDS
-    dbInstance.connections.allowDefaultPortFromAnyIpv4();
-    */
-
-    // Create a custom resource provider
-    const provider = new cr.Provider(this, "DBInitProvider", {
+    // Create Custom Resource to trigger Lambda
+    const dbInitProvider = new cr.Provider(this, "DBInitProvider", {
       onEventHandler: initializerFunction,
-      logRetention: cdk.aws_logs.RetentionDays.ONE_DAY,
     });
 
-    // Create a custom resource to trigger the initialization
-    new cdk.CustomResource(this, "DBInit", {
-      serviceToken: provider.serviceToken,
+    // Custom Resource that will trigger our Lambda
+    new cdk.CustomResource(this, "DBInitResource", {
+      serviceToken: dbInitProvider.serviceToken,
       properties: {
-        timestamp: Date.now(),
+        // Add a timestamp to force the custom resource to run on every deployment
+        timestamp: new Date().toISOString(),
       },
     });
 
-    // Output the DB endpoint
-    new CfnOutput(this, "DbEndpoint", {
-      value: dbInstance.instanceEndpoint.hostname,
+    // Output API URL
+    new cdk.CfnOutput(this, "ApiUrl", {
+      value: api.url,
+      description: "API Gateway URL",
     });
   }
 }
