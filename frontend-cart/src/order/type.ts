@@ -7,12 +7,6 @@ export enum OrderStatus {
   Cancelled = 'CANCELLED',
 }
 
-type StatusHistory = Array<{
-  status: OrderStatus;
-  timestamp: number;
-  comment: string;
-}>;
-
 export type Address = {
   address: string;
   firstName: string;
@@ -21,12 +15,7 @@ export type Address = {
 };
 export type CreateOrderDto = {
   items: Array<{ productId: string; count: 1 }>;
-  address: {
-    comment: string;
-    address: string;
-    lastName: string;
-    firstName: string;
-  };
+  address: Address;
 };
 
 export type PutCartPayload = {
@@ -34,9 +23,11 @@ export type PutCartPayload = {
   count: number;
 };
 export type CreateOrderPayload = {
-  userId: string;
-  cartId: string;
+  cart_id: string;
+  user_id?: string;
   items: Array<{ productId: string; count: number }>;
-  address: Address;
+  address?: Address;
   total: number;
+  payment?: any;
+  comments?: string;
 };

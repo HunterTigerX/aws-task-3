@@ -11,14 +11,15 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { BasicAuthGuard } from '../auth';
-import { Order, OrderService } from '../order';
+import { OrderService } from '../order';
 import { AppRequest, getUserIdFromRequest } from '../shared';
 import { calculateCartTotal } from './models-rules';
 import { CartService } from './services';
-import { CartItem } from './models';
-import { CreateOrderDto, PutCartPayload } from 'src/order/type';
+import { CartResponse } from './models';
+import { CreateOrderPayload, PutCartPayload } from 'src/order/type';
+import { OrderEntity } from 'src/order/entities/order.entity';
 
-@Controller('api/profile/cart')
+@Controller('api/api/profile/cart')
 export class CartController {
   constructor(
     private cartService: CartService,
@@ -28,11 +29,15 @@ export class CartController {
   // @UseGuards(JwtAuthGuard)
   @UseGuards(BasicAuthGuard)
   @Get()
-  async findUserCart(@Req() req: AppRequest): Promise<CartItem[]> {
+  async findUserCart(@Req() req: AppRequest): Promise<CartResponse> {
     const cart = await this.cartService.findOrCreateByUserId(
       getUserIdFromRequest(req),
     );
-    return cart.items;
+    return {
+      statusCode: HttpStatus.OK,
+      message: 'OK',
+      data: { cart, total: calculateCartTotal(cart) },
+    };
   }
 
   // @UseGuards(JwtAuthGuard)
@@ -41,12 +46,19 @@ export class CartController {
   async updateUserCart(
     @Req() req: AppRequest,
     @Body() body: PutCartPayload,
-  ): Promise<CartItem[]> {
+  ): Promise<CartResponse> {
     const cart = await this.cartService.updateByUserId(
       getUserIdFromRequest(req),
       body,
     );
-    return cart.items;
+    return {
+      statusCode: HttpStatus.OK,
+      message: 'OK',
+      data: {
+        cart,
+        total: calculateCartTotal(cart),
+      },
+    };
   }
 
   // @UseGuards(JwtAuthGuard)
@@ -60,7 +72,7 @@ export class CartController {
   // @UseGuards(JwtAuthGuard)
   @UseGuards(BasicAuthGuard)
   @Put('order')
-  async checkout(@Req() req: AppRequest, @Body() body: CreateOrderDto) {
+  async checkout(@Req() req: AppRequest, @Body() body: CreateOrderPayload) {
     const userId = getUserIdFromRequest(req);
     const cart = await this.cartService.findByUserId(userId);
 
@@ -68,16 +80,12 @@ export class CartController {
       throw new BadRequestException('Cart is empty');
     }
 
-    const { id: cartId, items } = cart;
-    const total = calculateCartTotal(items);
-    const order = await this.orderService.create({
-      userId,
-      cartId,
-      items: items.map(({ product, count }) => ({
-        productId: product.id,
-        count,
-      })),
-      address: body.address,
+    const total = calculateCartTotal(cart);
+
+    const order = await this.cartService.checkout(userId, {
+      cart_id: body.cart_id,
+      comments: body.address.comment,
+      delivery: body.address,
       total,
     });
     await this.cartService.removeByUserId(userId);
@@ -89,7 +97,7 @@ export class CartController {
 
   @UseGuards(BasicAuthGuard)
   @Get('order')
-  async getOrder(): Promise<Order[]> {
+  async getOrder(): Promise<OrderEntity[]> {
     return this.orderService.getAll();
   }
 }

@@ -1,4 +1,3 @@
-// entities/cart-item.entity.ts
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -14,6 +13,18 @@ export class CartItemEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @Column({ type: 'uuid', nullable: false })
+  cart_id: string;
+
+  @Column({ type: 'uuid', nullable: false })
+  product_id: string;
+
+  @Column({ type: 'float', nullable: false, default: 1 })
+  price: number;
+
+  @Column({ type: 'integer', nullable: false })
+  count: number;
+
   @ManyToOne(() => CartEntity, (cart) => cart.items)
   @JoinColumn({ name: 'cart_id' })
   cart: CartEntity;
@@ -21,7 +32,4 @@ export class CartItemEntity {
   @ManyToOne(() => ProductEntity)
   @JoinColumn({ name: 'product_id' })
   product: ProductEntity;
-
-  @Column()
-  count: number;
 }

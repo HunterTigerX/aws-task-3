@@ -5,10 +5,16 @@ export type Order = {
   userId: string;
   items: Array<{ productId: string; count: number }>;
   cartId: string;
-  address: Address;
-  statusHistory: Array<{
-    status: OrderStatus.Open;
-    timestamp: number;
-    comment: string;
-  }>;
+  payment: {
+    type: string;
+    address?: Address;
+    creditCard?: any;
+  };
+  delivery: {
+    type: string;
+    address: any;
+  };
+  comments: string;
+  status: OrderStatus.Open;
+  total: number;
 };

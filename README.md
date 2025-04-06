@@ -1,35 +1,32 @@
-To get 401 error, you need to run in the console in your browser  
-localStorage.removeItem("authorization_token");
-To get 403 error, you need to run in the console in your browser  
-localStorage.setItem("authorization_token", "anything")
-To get 200 and a successful import, you need to run in the console in your browser  
-localStorage.setItem("authorization_token", "aHVudGVydGlnZXJ4PVRFU1RfUEFTU1dPUkQ=")
-This command will show you the current value of the token in your browser
-localStorage.getItem("authorization_token")
-Test authorizer in AWS both work with `Basic aHVudGVydGlnZXJ4PVRFU1RfUEFTU1dPUkQ= `and `aHVudGVydGlnZXJ4PVRFU1RfUEFTU1dPUkQ=` for testing purposes.
-
-1. Task: https://github.com/rolling-scopes-school/aws/blob/main/aws-developer/07_authorization/task.md
+1. Task: https://github.com/rolling-scopes-school/aws/blob/main/aws-developer/08_integration_with_sql_database/task.md
 2. Screenshot:  
-This is our encoded example  
-![image](https://github.com/user-attachments/assets/bfb01b6b-a94e-4588-95a2-479a55413a03)
-This is 401 error if the header is empty on FE side
-![image](https://github.com/user-attachments/assets/8bbbb4bb-5eb0-48da-943b-47f75515a9f1)
-This is 403 error if the token is invalid on FE side
-![image](https://github.com/user-attachments/assets/829e922f-1a39-42a0-87ab-327a0c6b445d)
-This is 200 success, if the token is valid on FE side
-![image](https://github.com/user-attachments/assets/6de0085b-edf0-4299-a3de-1dfda3a16002)
-This is 200 success, if the token is valid in AWS
-![image](https://github.com/user-attachments/assets/d70c04e6-7e86-41f3-83e8-b66256cf7e0a)
-This is 403 error if the token is invalid in AWS
-![image](https://github.com/user-attachments/assets/7b2b1e3b-43a0-4e08-be83-23da88d48b68)
-This is 401 error if the header is empty in AWS
-![image](https://github.com/user-attachments/assets/a707011f-1c2a-4f85-9332-4abc09d630b8)
-3. Deploy: https://d138sljllinulj.cloudfront.net
-4. Done 21.03.2025 / deadline 23.03.2025
-5. Score: 100 / 100
+![image](https://github.com/user-attachments/assets/47a5d807-347b-4585-bd0e-e7a9ea30cfe3)
+![image](https://github.com/user-attachments/assets/87241644-b6bd-4bbc-9d54-3b3036332b4f)
+![image](https://github.com/user-attachments/assets/3a323a92-9ce6-4c9f-8b79-aadc2243837f)
+![image](https://github.com/user-attachments/assets/4536d294-e228-4ea7-8a8c-d671c86d693a)
+![image](https://github.com/user-attachments/assets/b0c2c8a1-dcbc-4d12-a71e-92924369a8fb)
+![image](https://github.com/user-attachments/assets/fe68e620-b111-4f1e-a746-f61447d73041)
+![image](https://github.com/user-attachments/assets/3f5cd819-25ea-4b0b-8d83-81eca1303233)
+![image](https://github.com/user-attachments/assets/a267dd54-41a6-4df0-9ea1-575f1618ebc3)
+![image](https://github.com/user-attachments/assets/e3ce8eba-c8e0-4762-a5bd-3be6451e8e10)
+huntertigerx3:TEST_PASSWORD equals aHVudGVydGlnZXJ4MzpURVNUX1BBU1NXT1JE
+4.1 Deploy: https://d138sljllinulj.cloudfront.net
+3.2 Deploy: https://wu9umi35c8.execute-api.eu-central-1.amazonaws.com/prod
+5. Done 06.04.2025 / deadline 06.04.2025
+6. Score: 100 / 100
 - Basic Scope
-- [x] **+0** authorization-service is added to the repo, has correct basicAuthorizer lambda and correct AWS CDK Stack
-- [x] **+0** Import Service AWS CDK Stack has authorizer configuration for the importProductsFile lambda. Request to the importProductsFile lambda should work only with correct authorization_token being decoded and checked by basicAuthorizer lambda. Response should be in 403 HTTP status if access is denied for this user (invalid authorization_token) and in 401 HTTP status if Authorization header is not provided.
-- [x] **+70** Client application is updated to send "Authorization: Basic authorization_token" header on import. Client should get authorization_token value from browser localStorage
+- [x] **+0** Task 8.1 is implemented
+- [x] **+0** Task 8.2 is implemented
+- [x] **+70** Task 8.3 is implemented lambda links are provided and cart's data is stored in DB
 - Additional (optional) tasks
-- [x] **+30** Client application should display alerts for the responses in 401 and 403 HTTP statuses. This behavior should be added to the nodejs-aws-fe-main/src/index.tsx file.
+- [x] **+4** Create users table and integrate with it
+- [x] **+3** Transaction based creation of checkout
+- [x] **+3** Integrate Cart service with FE repository
+
+localStorage.setItem("authorization_token", "aHVudGVydGlnZXJ4MzpURVNUX1BBU1NXT1JE") даст валидный токен на сайте, чтобы не было 401 ошибки
+
+https://wu9umi35c8.execute-api.eu-central-1.amazonaws.com/prod/api/auth/register
+https://wu9umi35c8.execute-api.eu-central-1.amazonaws.com/prod/api/auth/login
+https://wu9umi35c8.execute-api.eu-central-1.amazonaws.com/prod/api/profile
+https://wu9umi35c8.execute-api.eu-central-1.amazonaws.com/prod/api/profile/cart
+https://wu9umi35c8.execute-api.eu-central-1.amazonaws.com/prod/api/profile/cart/order

@@ -11,7 +11,7 @@ async function createDatabase() {
     port: parseInt(process.env.DB_PORT || "5432"),
     user: process.env.DB_USERNAME,
     password: process.env.DB_PASSWORD,
-    database: "postgres", // Connect to default database
+    database: "cartdb", // Connect to default database
     ssl: {
       rejectUnauthorized: false,
     },
@@ -50,21 +50,35 @@ async function runSql() {
     },
   });
 
-  const sql = fs.readFileSync(path.join(__dirname, "./create.sql")).toString();
-  const sql2 = fs.readFileSync(path.join(__dirname, "./fill.sql")).toString();
-
   try {
     await client.connect();
 
+    // try {
+    // const destroy = fs
+    // .readFileSync(path.join(__dirname, "../lambda/db-init/delete.sql"))
+    // .toString();
+    //   await client.query(destroy);
+    //   console.log("SQL script 1 executed successfully");
+    // } catch (error) {
+    //   console.error("Error executing SQL script to destroy db:", error);
+    // }
+
     try {
-      await client.query(sql);
+      const create = fs
+        .readFileSync(path.join(__dirname, "../lambda/db-init/create.sql"))
+        .toString();
+
+      await client.query(create);
       console.log("SQL script 1 executed successfully");
     } catch (error) {
       console.error("Error executing SQL script 1:", error);
     }
 
     try {
-      await client.query(sql2);
+      const fill = fs
+        .readFileSync(path.join(__dirname, "../lambda/db-init/fill.sql"))
+        .toString();
+      await client.query(fill);
       console.log("SQL script 2 executed successfully");
     } catch (error) {
       console.error("Error executing SQL script 2:", error);

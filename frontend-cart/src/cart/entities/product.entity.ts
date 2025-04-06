@@ -1,4 +1,3 @@
-// entities/product.entity.ts
 import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 
 @Entity('products')
@@ -6,12 +5,12 @@ export class ProductEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
+  @Column({ type: 'text' })
   title: string;
 
-  @Column()
+  @Column({ type: 'text' })
   description: string;
 
-  @Column('decimal')
+  @Column({ type: 'float' })
   price: number;
 }

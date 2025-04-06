@@ -1,29 +1,21 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
-
 import { CartModule } from './cart/cart.module';
 import { AuthModule } from './auth/auth.module';
 import { OrderModule } from './order/order.module';
-import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { getTypeOrmConfig, typeOrmConfig } from './typeorm.config';
-
+import { typeOrmConfig } from './typeorm.config';
+import { UsersModule } from './users/users.module';
+import { ConfigModule } from '@nestjs/config';
 @Module({
   imports: [
-    TypeOrmModule.forRootAsync({
-      useFactory: async () => {
-        if (process.env.AWS_LAMBDA_FUNCTION_NAME) {
-          return getTypeOrmConfig();
-        }
-        return typeOrmConfig;
-      },
-    }),
-    CartModule,
     AuthModule,
+    CartModule,
+    UsersModule,
     OrderModule,
     ConfigModule.forRoot(),
+    TypeOrmModule.forRoot(typeOrmConfig),
   ],
   controllers: [AppController],
-  providers: [],
 })
 export class AppModule {}

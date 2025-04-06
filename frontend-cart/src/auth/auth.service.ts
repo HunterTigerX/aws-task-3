@@ -2,7 +2,9 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/services/users.service';
 import { User } from '../users/models';
-// import { contentSecurityPolicy } from 'helmet';
+import { UserEntity } from 'src/users/entities/users.entity';
+import { userDto } from 'src/users/dto/user.dto';
+
 type TokenResponse = {
   token_type: string;
   access_token: string;
@@ -15,28 +17,36 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  register(payload: User) {
-    const user = this.usersService.findOne(payload.name);
-
+  async register(payload: userDto): Promise<{ userId: string }> {
+    console.log('Registering');
+    const user = this.usersService.findOne(payload.email);
+    console.log('user', user);
     if (user) {
       throw new BadRequestException('User with such name already exists');
     }
+    const result = {
+      name: payload.email,
+      password: payload.password,
+    };
 
-    const { id: userId } = this.usersService.createOne(payload);
-    return { userId };
+    const newUser = await this.usersService.createOne(result);
+    return { userId: newUser.id };
   }
 
-  validateUser(name: string, password: string): User {
+  async validateUser(name: string, password: string): Promise<UserEntity> {
     const user = this.usersService.findOne(name);
 
     if (user) {
       return user;
     }
 
-    return this.usersService.createOne({ name, password });
+    return this.usersService.createOne({ name, password } as User);
   }
 
-  login(user: User, type: 'jwt' | 'basic' | 'default'): TokenResponse {
+  async login(
+    user: User,
+    type: 'jwt' | 'basic' | 'default',
+  ): Promise<TokenResponse> {
     const LOGIN_MAP = {
       jwt: this.loginJWT,
       basic: this.loginBasic,
@@ -47,7 +57,7 @@ export class AuthService {
     return login ? login(user) : LOGIN_MAP.default(user);
   }
 
-  loginJWT(user: User) {
+  async loginJWT(user: User) {
     const payload = { username: user.name, sub: user.id };
 
     return {
@@ -56,9 +66,9 @@ export class AuthService {
     };
   }
 
-  loginBasic(user: User) {
+  async loginBasic(user: User) {
     // const payload = { username: user.name, sub: user.id };
-    console.log(user);
+    console.log('loginBasic user', user);
 
     function encodeUserToken(user: User) {
       const { name, password } = user;

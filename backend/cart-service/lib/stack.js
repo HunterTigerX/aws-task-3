@@ -1,16 +1,20 @@
+require("reflect-metadata");
 const cdk = require("aws-cdk-lib");
 const { Stack, CustomResource, CfnOutput } = require("aws-cdk-lib");
+const nodejs = require("aws-cdk-lib/aws-lambda-nodejs");
 const lambda = require("aws-cdk-lib/aws-lambda");
 const apigateway = require("aws-cdk-lib/aws-apigateway");
 const path = require("path");
 const ec2 = require("aws-cdk-lib/aws-ec2");
-const cr = require("aws-cdk-lib/custom-resources");
+const { NodejsFunction } = require("aws-cdk-lib/aws-lambda-nodejs");
 
 class CartStack extends Stack {
   constructor(scope, id, props) {
     super(scope, id, props);
 
-    const hostName = process.env.DB_HOST || "postgres";
+    const hostName =
+      process.env.DB_HOST ||
+      "cartdb.czwk442a8alq.eu-central-1.rds.amazonaws.com";
     const port = process.env.DB_PORT || "5432";
     const username = process.env.DB_USERNAME || "postgres";
     const password = process.env.DB_PASSWORD || "postgres";
@@ -45,12 +49,14 @@ class CartStack extends Stack {
     );
 
     // Create Lambda function
-    const nestLambda = new lambda.Function(this, "NestJsLambda", {
-      runtime: lambda.Runtime.NODEJS_18_X,
+    const nestLambda = new nodejs.NodejsFunction(this, "NestJsLambda", {
+      functionName: "NestJsCartLambda",
+      runtime: lambda.Runtime.NODEJS_20_X,
       handler: "handler",
       entry: path.join(__dirname, "../../../frontend-cart/src/lambda.ts"),
-      code: lambda.Code.fromAsset(
-        path.join(__dirname, "../../../frontend-cart/dist")
+      depsLockFilePath: path.join(
+        __dirname,
+        "../../../frontend-cart/package-lock.json"
       ),
       timeout: cdk.Duration.seconds(30),
       memorySize: 1024,
@@ -63,22 +69,24 @@ class CartStack extends Stack {
         DB_NAME: databaseName,
       },
       bundling: {
+        forceDockerBundling: false,
         minify: true,
         sourceMap: true,
-        target: "node18",
+        target: "node20",
         nodeModules: [
           "@nestjs/core",
           "@nestjs/common",
           "@nestjs/platform-express",
           "@codegenie/serverless-express",
+          "reflect-metadata",
         ],
         externalModules: ["@aws-sdk/*", "aws-sdk"],
-        vpc,
-        vpcSubnets: {
-          subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
-        },
-        securityGroups: [lambdaSecurityGroup],
       },
+      vpc,
+      vpcSubnets: {
+        subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
+      },
+      securityGroups: [lambdaSecurityGroup],
     });
 
     // Create API Gateway
@@ -117,7 +125,7 @@ class CartStack extends Stack {
 
     // Create Lambda function
     const initializerFunction = new lambda.Function(this, "DBFillFunction", {
-      runtime: lambda.Runtime.NODEJS_18_X,
+      runtime: lambda.Runtime.NODEJS_20_X,
       handler: "index.handler",
       code: lambda.Code.fromAsset(path.join(__dirname, "../lambda/db-init")),
       vpc,

@@ -1,50 +1,63 @@
 import { Injectable } from '@nestjs/common';
-import { randomUUID } from 'node:crypto';
-import { Order } from '../models';
-import { CreateOrderPayload, OrderStatus } from '../type';
+import { CreateOrderPayload } from '../type';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { OrderEntity } from '../entities/order.entity';
 
 @Injectable()
 export class OrderService {
-  private orders: Record<string, Order> = {};
+  constructor(
+    @InjectRepository(OrderEntity)
+    private ordersRepository: Repository<OrderEntity>,
+  ) {}
 
-  getAll() {
-    return Object.values(this.orders);
+  async getAll(): Promise<OrderEntity[]> {
+    return this.ordersRepository.find({
+      relations: {
+        cart: { items: true },
+      },
+    });
   }
 
-  findById(orderId: string): Order {
-    return this.orders[orderId];
+  async findById(orderId: string): Promise<OrderEntity> {
+    return this.ordersRepository.findOne({
+      relations: {
+        cart: { items: true },
+      },
+      where: { id: orderId },
+    });
   }
 
-  create(data: CreateOrderPayload) {
-    const id = randomUUID() as string;
-    const order: Order = {
-      id,
-      ...data,
-      statusHistory: [
-        {
-          comment: '',
-          status: OrderStatus.Open,
-          timestamp: Date.now(),
-        },
-      ],
-    };
-
-    this.orders[id] = order;
-
-    return order;
+  async create(userId: string, data: CreateOrderPayload): Promise<OrderEntity> {
+    return await this.ordersRepository.save({
+      user_id: userId,
+      cart_id: data.cart_id,
+      delivery: data.address,
+      total: data.total,
+    });
   }
 
   // TODO add  type
-  update(orderId: string, data: Order) {
+  async update(orderId: string, data: OrderEntity) {
     const order = this.findById(orderId);
 
     if (!order) {
       throw new Error('Order does not exist.');
     }
 
-    this.orders[orderId] = {
-      ...data,
-      id: orderId,
-    };
+    const newOrder = { ...order, ...data };
+
+    await this.ordersRepository.update(orderId, newOrder);
+
+    return newOrder;
+  }
+
+  async delete(orderId: string): Promise<OrderEntity> {
+    const order = await this.ordersRepository.findOne({
+      where: { id: orderId },
+    });
+    await this.ordersRepository.delete(orderId);
+
+    return order;
   }
 }
