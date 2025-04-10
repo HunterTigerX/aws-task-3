@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { CreateOrderPayload } from '../type';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 import { OrderEntity } from '../entities/order.entity';
 
 @Injectable()
@@ -10,6 +10,13 @@ export class OrderService {
     @InjectRepository(OrderEntity)
     private ordersRepository: Repository<OrderEntity>,
   ) {}
+
+  async createWithTransaction(
+    transactionalEntityManager: EntityManager,
+    orderData: CreateOrderPayload,
+  ): Promise<OrderEntity> {
+    return transactionalEntityManager.save(OrderEntity, orderData);
+  }
 
   async getAll(): Promise<OrderEntity[]> {
     return this.ordersRepository.find({

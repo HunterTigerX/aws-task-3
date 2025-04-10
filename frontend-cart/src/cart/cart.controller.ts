@@ -15,9 +15,15 @@ import { OrderService } from '../order';
 import { AppRequest, getUserIdFromRequest } from '../shared';
 import { calculateCartTotal } from './models-rules';
 import { CartService } from './services';
-import { CartResponse } from './models';
-import { CreateOrderPayload, PutCartPayload } from 'src/order/type';
+import { CartResponse, CartStatuses } from './models';
+import {
+  CreateOrderPayload,
+  OrderStatus,
+  PutCartPayload,
+} from 'src/order/type';
 import { OrderEntity } from 'src/order/entities/order.entity';
+import { CartEntity } from './entities/cart.entity';
+import { randomUUID } from 'node:crypto';
 
 @Controller('api/api/profile/cart')
 export class CartController {
@@ -74,25 +80,53 @@ export class CartController {
   @Put('order')
   async checkout(@Req() req: AppRequest, @Body() body: CreateOrderPayload) {
     const userId = getUserIdFromRequest(req);
-    const cart = await this.cartService.findByUserId(userId);
+    return await this.cartService.dataSource.transaction(
+      async (transactionalEntityManager) => {
+        const cart = await transactionalEntityManager
+          .getRepository(CartEntity)
+          .findOne({
+            where: { user_id: userId, status: CartStatuses.OPEN },
+            relations: ['items'],
+          });
 
-    if (!(cart && cart.items.length)) {
-      throw new BadRequestException('Cart is empty');
-    }
+        if (!(cart && cart.items.length)) {
+          throw new BadRequestException('Cart is empty');
+        }
 
-    const total = calculateCartTotal(cart);
+        const { id: cartId, items } = cart;
 
-    const order = await this.cartService.checkout(userId, {
-      cart_id: body.cart_id,
-      comments: body.address.comment,
-      delivery: body.address,
-      total,
-    });
-    await this.cartService.removeByUserId(userId);
+        const total = calculateCartTotal(cart);
+        const order = await transactionalEntityManager
+          .getRepository(OrderEntity)
+          .save({
+            id: randomUUID(),
+            user_id: userId,
+            cartId: cartId,
+            payment: 'Unknown',
+            delivery: {
+              address: body.address.address,
+              firstName: 'firstnam',
+              lastName: 'asd',
+              comment: '123',
+            },
+            comments: body.address.comment || 'Comment',
 
-    return {
-      order,
-    };
+            address: body.address,
+            items: items.map(({ product, count }) => ({
+              productId: product.id,
+              count,
+            })),
+
+            total,
+          });
+
+        await transactionalEntityManager
+          .getRepository(CartEntity)
+          .update({ id: cartId }, { status: OrderStatus.ORDERED });
+
+        return { order };
+      },
+    );
   }
 
   @UseGuards(BasicAuthGuard)

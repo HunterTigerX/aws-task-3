@@ -5,6 +5,7 @@ export enum OrderStatus {
   Sent = 'SENT',
   Completed = 'COMPLETED',
   Cancelled = 'CANCELLED',
+  ORDERED = 'ORDERED',
 }
 
 export type Address = {
