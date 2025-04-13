@@ -1,36 +1,36 @@
-import 'reflect-metadata';
-import { NestFactory } from '@nestjs/core';
-import helmet from 'helmet';
-import { AppModule } from './app.module';
-import serverlessExpress from '@codegenie/serverless-express';
-import { Callback, Context, Handler } from 'aws-lambda';
+// import 'reflect-metadata';
+// import { NestFactory } from '@nestjs/core';
+// import helmet from 'helmet';
+// import { AppModule } from './app.module';
+// import serverlessExpress from '@codegenie/serverless-express';
+// import { Callback, Context, Handler } from 'aws-lambda';
 
-let server: Handler;
+// let server: Handler;
 
-async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+// async function bootstrap() {
+//   const app = await NestFactory.create(AppModule);
 
-  // const configService = app.get(ConfigService);
-  const port = process.env.PORT || 4000;
+//   // const configService = app.get(ConfigService);
+//   const port = process.env.PORT || 4000;
 
-  app.enableCors({
-    origin: (req, callback) => callback(null, true),
-  });
-  app.use(helmet());
+//   app.enableCors({
+//     origin: (req, callback) => callback(null, true),
+//   });
+//   app.use(helmet());
 
-  await app.init();
-  const expressApp = app.getHttpAdapter().getInstance();
+//   await app.init();
+//   const expressApp = app.getHttpAdapter().getInstance();
 
-  console.log('App is running on %s port', port);
-  return serverlessExpress({ app: expressApp });
-}
+//   console.log('App is running on %s port', port);
+//   return serverlessExpress({ app: expressApp });
+// }
 
-export const handler: Handler = async (
-  event: any,
-  context: Context,
-  callback: Callback,
-) => {
-  const expressApp = await bootstrap();
-  server = server ?? expressApp;
-  return server(event, context, callback);
-};
+// export const handler: Handler = async (
+//   event: any,
+//   context: Context,
+//   callback: Callback,
+// ) => {
+//   const expressApp = await bootstrap();
+//   server = server ?? expressApp;
+//   return server(event, context, callback);
+// };

@@ -38,3 +38,5 @@ _.tsbuildinfo # TypeScript build info
 .dockerignore
 docker-compose.yml # If not needed in the image
 docker-compose.\*.yml
+
+npm-debug.log
