@@ -7,6 +7,51 @@ AWS.config.update({ region: "eu-central-1" }); // Update region if required
 const dynamodb = new AWS.DynamoDB();
 const docClient = new AWS.DynamoDB.DocumentClient();
 
+async function clearTable(tableName) {
+  try {
+    console.log(`Clearing table ${tableName}...`);
+
+    // 1. Сканируем все записи
+    const scanParams = {
+      TableName: tableName,
+    };
+    const scanResult = await docClient.scan(scanParams).promise();
+
+    if (scanResult.Items.length === 0) {
+      console.log(`Table ${tableName} is already empty.`);
+      return;
+    }
+
+    // 2. Удаляем записи пачками (batchWrite)
+    const batchSize = 25; // Максимум 25 элементов за запрос
+    const batches = [];
+    for (let i = 0; i < scanResult.Items.length; i += batchSize) {
+      const batch = scanResult.Items.slice(i, i + batchSize);
+      batches.push(batch);
+    }
+
+    for (const batch of batches) {
+      const deleteRequests = batch.map(item => {
+        const key = tableName === 'products' 
+          ? { id: item.id } 
+          : { product_id: item.product_id };
+        return { DeleteRequest: { Key: key } };
+      });
+
+      await docClient.batchWrite({
+        RequestItems: {
+          [tableName]: deleteRequests,
+        },
+      }).promise();
+    }
+
+    console.log(`Table ${tableName} cleared successfully.`);
+  } catch (error) {
+    console.error(`Error clearing table ${tableName}:`, error);
+    throw error;
+  }
+}
+
 async function createTables() {
   const productsTableParams = {
     TableName: "products",
@@ -46,6 +91,9 @@ async function createTables() {
 }
 
 async function seedData() {
+  await clearTable('products');
+  await clearTable('stocks');
+
   const stocks = [];
 
   async function fillStocks() {
