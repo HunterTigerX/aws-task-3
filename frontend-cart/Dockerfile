@@ -18,7 +18,7 @@ COPY . .
 # Build the application
 RUN npm run build
 
-# Stage 3: Production image (~140MB)
+# Stage 3: Production image (less than 500 MB)
 FROM node:20-alpine
 WORKDIR /app
 
@@ -32,11 +32,11 @@ COPY --from=builder /app/.env.production .env
 USER node
 
 # Application port
-EXPOSE 4000
+EXPOSE 8080
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s \
-  CMD curl -f http://localhost:4000/api/health || exit 1
+  CMD curl -f http://localhost:8080/api/health || exit 1
 
 # Run the application
-CMD ["node", "dist/main.js"]  # Adjust based on your entry file
+CMD ["node", "dist/main.js"] 
