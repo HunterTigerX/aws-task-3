@@ -1,42 +1,31 @@
-# Dependency directories
-
-node_modules/ # Ignored to prevent conflicts with container-installed dependencies
-.npm # NPM cache directory
-.tmp # Temporary files
-dist/ # Ignored since we'll rebuild in the container (avoids stale builds)
-*.log
-*.tsbuildinfo
-
-# Build and test artifacts
-
-coverage/ # Test coverage reports
-build/ # Build output (if using other build tools)
-_.log # Log files
-_.tsbuildinfo # TypeScript build info
-
-# Environment files (except production .env)
-
-.env.local
-.env.development
-.env.test
-.env\*.local # All local env files except production
-
-# IDE and OS files
-
-.idea/ # JetBrains IDE files
-.vscode/ # VS Code settings
-.DS_Store # macOS metadata
-\*.swp # Vim swap files
-
-# Git
-
-.git/ # Git directory
-.gitignore # Git ignore file
-.gitattributes
-
-# Docker files (except Dockerfile)
-.dockerignore
-docker-compose.yml # If not needed in the image
-docker-compose.\*.yml
-
+# Development
+node_modules
 npm-debug.log
+yarn-debug.log
+yarn-error.log
+.git
+.gitignore
+.env
+.env.*
+*.md
+*.log
+
+# Testing
+coverage
+.nyc_output
+test
+__tests__
+
+# Build output
+dist
+build
+
+# IDE specific files
+.idea
+.vscode
+*.swp
+*.swo
+
+# OS specific files
+.DS_Store
+Thumbs.db

@@ -1,42 +1,48 @@
-# Stage 1: Build stage (installs dependencies and builds the app)
-# Copy only package files first for optimal caching
+# Stage 1: Dependencies
 FROM node:20-alpine AS deps
 WORKDIR /app
-COPY package.json package-lock.json ./
 
-# Install production dependencies only (no devDependencies)
-RUN npm ci --omit=dev 
+# Copy only package files first
+COPY package*.json ./
 
-# Stage 2: Build NestJS application
+# Install dependencies efficiently
+RUN npm ci --only=production && \
+    npm cache clean --force
+
+# Stage 2: Builder
 FROM node:20-alpine AS builder
 WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
 
-# Copy the rest of the files
-COPY . .
+# Copy only necessary files for build
+COPY tsconfig*.json ./
+COPY package*.json ./
+COPY --from=deps /app/node_modules ./node_modules
+COPY src ./src
 
 # Build the application
-RUN npm run build
+RUN npm install && \
+    npm run build && \
+    npm prune --production
 
-# Stage 3: Production image (less than 500 MB)
-FROM node:20-alpine
+# Stage 3: Production
+FROM node:20-alpine AS production
 WORKDIR /app
 
-# Copy only production necessary files
-COPY --from=builder /app/node_modules ./node_modules
+# Copy only production files
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/package.json .
-COPY --from=builder /app/.env.production .env
+COPY --from=builder /app/node_modules ./node_modules
+COPY package*.json ./
 
-# Drop root privileges for security
+# Clean up unnecessary files
+RUN find ./node_modules -type d \( -name "test" -o -name "tests" -o -name "docs" -o -name "examples" \) -exec rm -rf {} + && \
+    find ./node_modules -type f \( -name "*.md" -o -name "*.ts" -o -name "*.map" \) -delete
+
+# Security: Use non-root user
 USER node
 
-# Application port
 EXPOSE 8080
 
-# Health check
 HEALTHCHECK --interval=30s --timeout=3s \
-  CMD curl -f http://localhost:8080/api/health || exit 1
+  CMD wget --no-verbose --tries=1 --spider http://localhost:8080/api/health || exit 1
 
-# Run the application
-CMD ["node", "dist/main.js"] 
+CMD ["node", "dist/main.js"]
