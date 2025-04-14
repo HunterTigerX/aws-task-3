@@ -5,3 +5,8 @@ cdk.out
 ./backend/cdk.out
 .env
 
+
+# Elastic Beanstalk Files
+.elasticbeanstalk/*
+!.elasticbeanstalk/*.cfg.yml
+!.elasticbeanstalk/*.global.yml

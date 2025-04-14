@@ -189,6 +189,13 @@ class WebsiteStack extends Stack {
       createProductLambda,
       catalogBatchProcessLambda
     );
+
+    // Creating CloudFront distribution for API
+    const apiDistribution = this.createApiCloudFrontDistribution();
+  
+  new cdk.CfnOutput(this, "ApiDistributionDomainName", {
+    value: apiDistribution.distributionDomainName,
+  });
   }
 
   createWebsiteBucket() {
@@ -349,6 +356,24 @@ class WebsiteStack extends Stack {
       destinationBucket: websiteBucket,
       distribution,
       distributionPaths: ["/*"],
+    });
+  }
+
+  createApiCloudFrontDistribution() {
+    return new cloudfront.Distribution(this, 'CartApiDistribution', {
+      defaultBehavior: {
+        origin: new origins.HttpOrigin(
+          'huntertigerx-cart-api-dev.eu-central-1.elasticbeanstalk.com',
+          {
+            protocolPolicy: cloudfront.OriginProtocolPolicy.HTTP_ONLY,
+            originSslProtocols: [cloudfront.OriginSslPolicy.TLS_V1_2],
+          }
+        ),
+        allowedMethods: cloudfront.AllowedMethods.ALLOW_ALL,
+        viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+        cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
+        originRequestPolicy: cloudfront.OriginRequestPolicy.ALL_VIEWER,
+      },
     });
   }
 }
