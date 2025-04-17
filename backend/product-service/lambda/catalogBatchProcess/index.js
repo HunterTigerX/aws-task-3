@@ -52,9 +52,9 @@ exports.handler = async (event) => {
       console.log('product count', product.count)
       console.log('product price', product.price)
       
-      const { title, description, price, count } = product;
+      const { title, description, price, count, imgurl } = product;
 
-      if (!title || typeof price !== "number" || typeof count !== "number") {
+      if (!title || typeof price !== "number" || typeof count !== "number" || !imgurl) {
         console.error("Invalid product data:", product);
         continue;
       }
@@ -72,6 +72,7 @@ exports.handler = async (event) => {
                 title,
                 description,
                 price,
+                imgurl
               },
             },
           },
@@ -101,6 +102,7 @@ exports.handler = async (event) => {
               description,
               price,
               count,
+              imgurl
             }),
             MessageAttributes: {
               price: {

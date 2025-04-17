@@ -71,6 +71,7 @@ exports.handler = async (event) => {
               title,
               description,
               price,
+              imgurl
             },
           },
         },
@@ -103,6 +104,7 @@ exports.handler = async (event) => {
         description,
         price,
         count,
+        imgurl
       }
     );
   } catch (error) {
