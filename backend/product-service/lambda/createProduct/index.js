@@ -4,9 +4,13 @@ const {
   TransactWriteCommand,
 } = require("@aws-sdk/lib-dynamodb");
 const { v4: uuidv4 } = require("uuid");
+const dotenv = require("dotenv");
+dotenv.config();
 
 const client = new DynamoDBClient();
 const docClient = DynamoDBDocumentClient.from(client);
+
+
 
 const headers = {
   "Access-Control-Allow-Origin": "*",
@@ -49,10 +53,10 @@ exports.handler = async (event) => {
       );
     }
 
-    const { title, description, price, count } = requestBody;
-    console.log("Parsed body:", { title, description, price, count });
+    const { title, description, price, count, createProduct } = requestBody;
 
-    if (!title || typeof price !== "number" || typeof count !== "number") {
+
+    if (!title || typeof price !== "number" || typeof count !== "number" || typeof createProduct !== "string") {
       return createResponse(
         400,
         ({ message: "Invalid product data" })
