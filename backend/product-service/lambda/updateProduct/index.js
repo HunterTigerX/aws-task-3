@@ -63,10 +63,8 @@ async function updateProductInRDS(productId, updatedData) {
 exports.handler = async (event) => {
     console.log('Entering updateProduct')
   try {
-    // console.log("Received event:", JSON.stringify(event, null, 2));
     const body = JSON.parse(event.body);
     const productId = body.id;
-    console.log('body', body)
 
     // Validate input
     if (!body.title || !body.description || !body.price || !body.count) {
@@ -156,7 +154,7 @@ exports.handler = async (event) => {
       headers: {
         "Access-Control-Allow-Origin": "*",
       },
-      body: JSON.stringify({ message: "Internal server error" }),
+      body: JSON.stringify({ message: "Internal server error at update product" }),
     };
   }
 };

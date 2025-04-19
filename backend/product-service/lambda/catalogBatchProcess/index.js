@@ -36,8 +36,6 @@ async function createProduct(body, productId) {
   const price = body["price"];
   const imgurl = body["imgurl"];
 
-  console.log(process.env.DB_USERNAME, process.env.DB_PASSWORD, body, productId)
-  console.log(productId, title, description, price, imgurl)
   // PostgreSQL Query
   const pgQuery = {
     text: `INSERT INTO products(id, title, description, price, imgurl) 
@@ -51,7 +49,6 @@ async function createProduct(body, productId) {
 
     // Start transaction
     await rdsClient.query("BEGIN");
-    console.log('Began')
     
     // Execute PostgreSQL query
     await rdsClient.query(pgQuery);

@@ -66,7 +66,7 @@ exports.handler = async (event) => {
     });
 
     return createResponse(500, {
-      message: "Internal server error",
+      message: "Internal server error at get product list",
       requestId: event?.requestContext?.requestId,
     });
   }

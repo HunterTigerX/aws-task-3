@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "main": "index.js",
   "dependencies": {
-    "@aws-sdk/client-dynamodb": "^3.758.0",
-    "@aws-sdk/lib-dynamodb": "^3.758.0",
-    "uuid": "^11.1.0"
+    "aws-sdk": "^2.1692.0",
+    "pg": "^8.11.0",
+    "dotenv": "^16.5.0"
   }
 }
