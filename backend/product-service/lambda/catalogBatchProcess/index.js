@@ -1,5 +1,5 @@
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
-const { SNSClient, PublishCommand } = require("@aws-sdk/client-sns"); // Make sure this package is in your dependencies
+const { SNSClient, PublishCommand } = require("@aws-sdk/client-sns"); 
 const {
   DynamoDBDocumentClient,
   TransactWriteCommand,

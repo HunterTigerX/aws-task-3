@@ -123,6 +123,8 @@ class WebsiteStack extends Stack {
       getProductByIdLambda,
       createProductLambda,
       catalogBatchProcessLambda,
+      updateProductLambda,
+      deleteProductLambda
     } = this.createLambdaFunctions(productsTable, stocksTable, dbPolicies);
 
     // Configure SQS as event source for Lambda
@@ -187,7 +189,9 @@ class WebsiteStack extends Stack {
       getProductsListLambda,
       getProductByIdLambda,
       createProductLambda,
-      catalogBatchProcessLambda
+      catalogBatchProcessLambda,
+      updateProductLambda,
+      deleteProductLambda
     );
 
     // Creating CloudFront distribution for API
@@ -249,6 +253,19 @@ class WebsiteStack extends Stack {
   }
 
   createLambdaFunctions(productsTable, stocksTable, dbPolicies) {
+    const deleteProductLambda = new lambda.Function(this, "deleteProduct", {
+      runtime: lambda.Runtime.NODEJS_18_X,
+      handler: "index.handler",
+      code: lambda.Code.fromAsset(
+        path.join(__dirname, "../lambda/deleteProduct")
+      ),
+      environment: {
+        PRODUCTS_TABLE: productsTable.tableName,
+        STOCKS_TABLE: stocksTable.tableName,
+      },
+    });
+    deleteProductLambda.addToRolePolicy(dbPolicies);
+
     const getProductsListLambda = new lambda.Function(this, "getProductsList", {
       runtime: lambda.Runtime.NODEJS_18_X,
       handler: "index.handler",
@@ -306,18 +323,36 @@ class WebsiteStack extends Stack {
     );
     catalogBatchProcessLambda.addToRolePolicy(dbPolicies);
 
+    const updateProductLambda = new lambda.Function(this, "updateProduct", {
+      runtime: lambda.Runtime.NODEJS_18_X,
+      handler: "index.handler",
+      code: lambda.Code.fromAsset(
+        path.join(__dirname, "../lambda/updateProduct")
+      ),
+      environment: {
+        PRODUCTS_TABLE: productsTable.tableName,
+        STOCKS_TABLE: stocksTable.tableName,
+      },
+    });
+    updateProductLambda.addToRolePolicy(dbPolicies);
+
     return {
       getProductsListLambda,
       getProductByIdLambda,
       createProductLambda,
       catalogBatchProcessLambda,
+      updateProductLambda,
+      deleteProductLambda
     };
   }
 
   createApiGateway(
     getProductsListLambda,
     getProductByIdLambda,
-    createProductLambda
+    createProductLambda,
+    catalogBatchProcessLambda,
+    updateProductLambda,
+    deleteProductLambda
   ) {
     const api = new apigateway.RestApi(this, "ProductsApi", {
       restApiName: "Products Service",
@@ -346,6 +381,17 @@ class WebsiteStack extends Stack {
       "GET",
       new apigateway.LambdaIntegration(getProductByIdLambda)
     );
+
+    const productPath = api.root.addResource("product");
+    productPath.addMethod(
+      "PUT",
+      new apigateway.LambdaIntegration(updateProductLambda)
+    );
+    productPath.addMethod(
+      "DELETE",
+      new apigateway.LambdaIntegration(deleteProductLambda)
+    );
+
   }
 
   deployWebsiteContent(websiteBucket, distribution) {
