@@ -1,0 +1,1 @@
+export type ServiceName = 'product' | 'cart' | 'authorization' | 'import' | 'products' | 'profile';
