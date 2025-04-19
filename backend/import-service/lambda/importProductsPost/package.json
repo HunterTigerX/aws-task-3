@@ -1,0 +1,9 @@
+{
+  "name": "aws",
+  "version": "0.1.0",
+  "main": "index.js",
+  "dependencies": {
+    "axios": "^1.8.4",
+    "json-2-csv": "^5.5.9"
+  }
+}
