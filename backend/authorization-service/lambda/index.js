@@ -26,7 +26,7 @@ const handler = async (event) => {
     try {
       console.log("authToken", authToken);
       const profileUrl =
-        "https://wu9umi35c8.execute-api.eu-central-1.amazonaws.com/prod/api/auth/login";
+        "https://icuxr5y3mb.execute-api.eu-central-1.amazonaws.com/prod/api/auth/login";
       const [username, password] = decodedString.split(":");
 
       const userExists = await axios({
