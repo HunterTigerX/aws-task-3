@@ -1,8 +1,7 @@
-import axios from "axios";
-import { ServiceName } from "./types";
-import dotenv from "dotenv";
-import { json2csv } from "json-2-csv";
-import { getFromCache, setToCache } from "./cache";
+const axios = require("axios");
+const dotenv = require("dotenv");
+const { json2csv } = require("json-2-csv");
+const { getFromCache, setToCache } = require("./cache.js");
 
 dotenv.config();
 
@@ -13,26 +12,28 @@ const serviceMap = {
   authorization: process.env.AUTHORIZATION_SERVICE_URL,
   profile: process.env.PROFILE_SERVICE_URL,
 };
-
 async function axiosRequests(
-  method: string,
-  url: string,
-  headers: any,
-  data?: any
+  method,
+  url,
+  headers,
+  data
 ) {
-  // console.log("method", method);
-  // console.log("url", url);
-  // console.log("data", data);
+  console.log("method", method);
+  console.log("url", url);
+  console.log("data", data);
   let response;
   try {
-    if (data && method !== "GET") {
+    if (data && method == "GET" || method === 'PUT' || method === 'POST' || method === 'DELETE') {
+      console.log('Axios with data')
       response = await axios({
         method,
         url,
         headers,
         data,
       });
-    } else {
+    } else 
+    {
+      console.log('Axios without the data')
       response = await axios({
         method,
         url,
@@ -56,13 +57,13 @@ async function axiosRequests(
   }
 }
 
-function isEmpty(obj: object): boolean {
+function isEmpty(obj) {
   return Object.keys(obj).length === 0;
 }
 
-function ifTheRightFormat(name: string) {
+function ifTheRightFormat(name) {
   try {
-    if (!name.toLowerCase().endsWith(".csv")) {
+    if (name.toLowerCase().endsWith(".csv")) {
       return { isValid: false, error: "Файл должен иметь расширение .csv" };
     }
     // Список запрещённых символов в именах файлов (можно дополнить)
@@ -119,27 +120,26 @@ function ifTheRightFormat(name: string) {
   }
 }
 
-function notFound(serviceName: string) {
+function notFound(serviceName) {
   return {
     status: 502,
     data: { message: `Service URL not configured for ${serviceName}` },
   };
 }
 
-export const proxyRequest = async (
-  serviceName: ServiceName,
-  method: string,
-  path: string,
-  query: Record<string, any>,
-  headers: Record<string, any>,
-  body: any
+const proxyRequest = async (
+  serviceName,
+  method,
+  query,
+  headers,
+  body,
+  source
 ) => {
-  // console.log("serviceName", serviceName);
-  // console.log("method", method);
-  // console.log("path", path);
-  // console.log("query", query);
-  // console.log("headers", headers);
-  // console.log("body", body);
+  console.log("serviceName proxy", serviceName);
+  console.log("method proxy", method);
+  console.log("query", query);
+  console.log("headers", headers);
+  console.log("body", body);
 
   let requestUrl = "";
   let productId = "";
@@ -152,7 +152,14 @@ export const proxyRequest = async (
     }),
     ...(headers["x-api-key"] && { "x-api-key": headers["x-api-key"] }),
   };
+
   try {
+    if (source === 'lambda') {
+      query[serviceName.split('/')[1]]=''
+      console.log('query')
+      serviceName = serviceName.split('/')[0]
+      console.log('query')
+    }
     if (!serviceMap.product) {
       return {
         status: 500,
@@ -216,7 +223,11 @@ export const proxyRequest = async (
         return result;
       } else if (method === "DELETE") {
         // console.log("Trying to delete");
+        console.log('query', query)
+        console.log('isEmpty(query)', isEmpty(query))
+        console.log('productId', productId)
         if (!isEmpty(query)) {
+          console.log('Here!!!')
           productId = Object.keys(query)[0];
           const newBody = {
             productId,
@@ -259,7 +270,7 @@ export const proxyRequest = async (
           // Значит запрос на http://localhost:3000/cart
           const result = await axiosRequests(
             method,
-            serviceMap.cart!,
+            serviceMap.cart,
             cleanHeaders
           );
           // console.log("result 5", result);
@@ -284,7 +295,7 @@ export const proxyRequest = async (
           // Значит запрос на http://localhost:3000/cart
           const result = await axiosRequests(
             method,
-            serviceMap.cart!,
+            serviceMap.cart,
             cleanHeaders,
             body
           );
@@ -298,7 +309,7 @@ export const proxyRequest = async (
       if (method === "GET") {
         const result = await axiosRequests(
           method,
-          serviceMap.profile!,
+          serviceMap.profile,
           cleanHeaders
         );
         // console.log("result 7", result);
@@ -310,7 +321,7 @@ export const proxyRequest = async (
       if (method === "POST") {
         if (!isEmpty(query)) {
           const csvKey = Object.keys(query)[0];
-          const csvFileName: string = Object.values(query)[0];
+          const csvFileName = Object.values(query)[0];
           const checkCsv = ifTheRightFormat(csvFileName);
           if (csvKey === "name" && checkCsv) {
             const csv = await json2csv(body);
@@ -323,7 +334,7 @@ export const proxyRequest = async (
             };
             const result = await axiosRequests(
               method,
-              serviceMap.import!,
+              serviceMap.import,
               cleanHeaders,
               newData
             );
@@ -345,27 +356,31 @@ export const proxyRequest = async (
         return notFound(serviceName);
       }
     } else if (serviceName === "authorization") {
+      console.log('Inside authorization')
       if (method === "POST") {
+        console.log('Inside authorization POST')
         if (!isEmpty(query)) {
           // Значит запрос на http://localhost:3000/cart?order
           queryElement = Object.keys(query)[0];
           if (queryElement === "register") {
+            console.log('Registering user')
             const result = await axiosRequests(
               method,
-              `${serviceMap.authorization!}/register`,
+              `${serviceMap.authorization}/register`,
               cleanHeaders,
               body
             );
-            // console.log("result 8", result);
+            console.log("result 8", result);
             return result;
           } else if (queryElement === "login") {
+            console.log('Logging in')
             const result = await axiosRequests(
               method,
-              `${serviceMap.authorization!}/login`,
+              `${serviceMap.authorization}/login`,
               cleanHeaders,
               body
             );
-            // console.log("result 9", result);
+            console.log("result 9", result);
             return result;
           } else {
             return {
@@ -375,6 +390,8 @@ export const proxyRequest = async (
               },
             };
           }
+        } else {
+          return notFound(serviceName);
         }
       } else {
         return notFound(serviceName);
@@ -389,3 +406,5 @@ export const proxyRequest = async (
     };
   }
 };
+
+module.exports = { proxyRequest };

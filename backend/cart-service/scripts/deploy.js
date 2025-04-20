@@ -19,18 +19,18 @@ function execute(command, cwd) {
 
 async function deploy() {
   try {
-    console.log("Installing Deps db");
-    execute("npm install", path.join(__dirname, "../lambda/db-init"));
+    // console.log("Installing Deps db");
+    // execute("npm install", path.join(__dirname, "../lambda/db-init"));
 
-    // Build and deploy app
-    console.log("Installing app dependencies...");
-    execute(
-      "npm install --legacy-peer-deps",
-      path.join(__dirname, "../../../frontend-cart")
-    );
+    // // Build and deploy app
+    // console.log("Installing app dependencies...");
+    // execute(
+    //   "npm install --legacy-peer-deps",
+    //   path.join(__dirname, "../../../frontend-cart")
+    // );
 
-    console.log("Building application...");
-    execute("npm run build", path.join(__dirname, "../../../frontend-cart"));
+    // console.log("Building application...");
+    // execute("npm run build", path.join(__dirname, "../../../frontend-cart"));
 
     // Deploy infrastructure
     console.log("Installing CDK dependencies...");

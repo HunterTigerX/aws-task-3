@@ -10,7 +10,7 @@ import { useAvailableProducts } from "~/queries/products";
 
 export default function Products() {
   const { data = [], isLoading } = useAvailableProducts();
-
+  console.log("data", data);
   if (isLoading) {
     return <Typography>Loading...</Typography>;
   }
@@ -24,8 +24,13 @@ export default function Products() {
             sx={{ height: "100%", display: "flex", flexDirection: "column" }}
           >
             <CardMedia
-              sx={{ pt: "56.25%" }}
-              image={`https://source.unsplash.com/random?sig=${index}`}
+              sx={{
+                pt: "56.25%",
+                backgroundSize: "contain",
+                backgroundRepeat: "no-repeat",
+                backgroundPosition: "center",
+              }}
+              image={product.imgurl}
               title="Image title"
             />
             <CardContent sx={{ flexGrow: 1 }}>

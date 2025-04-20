@@ -9,6 +9,7 @@ export function useAvailableProducts() {
     "available-products",
     async () => {
       const res = await axios.get<AvailableProduct[]>(
+        // `${API_PATHS.bff}/products`,
         `${API_PATHS.product}/products`,
         {
           headers: {
@@ -36,6 +37,7 @@ export function useAvailableProduct(id?: string) {
     ["product", { id }],
     async () => {
       const res = await axios.get<AvailableProduct>(
+        // `${API_PATHS.bff}/products/${id}`
         `${API_PATHS.product}/products/${id}`
       );
       return res.data;

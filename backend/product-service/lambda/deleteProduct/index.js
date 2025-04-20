@@ -5,6 +5,7 @@ const dotenv = require("dotenv");
 dotenv.config();
 
 exports.handler = async (event) => {
+  console.log('entering delete lambda')
   function returnResponse(statusCode, body) {
     return {
       statusCode,

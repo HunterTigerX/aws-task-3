@@ -1,16 +1,11 @@
-import fastify, {
-  FastifyInstance,
-  FastifyRequest,
-  FastifyReply,
-} from "fastify";
-import cors from "@fastify/cors";
-import dotenv from "dotenv";
-import { proxyRequest } from "./proxy";
-import { ServiceName } from "./types";
+const fastify = require("fastify");
+const cors = require("@fastify/cors");
+const dotenv = require("dotenv");
+const { proxyRequest } = require("./proxy.js");
 
 dotenv.config();
 
-const app: FastifyInstance = fastify({ logger: true });
+const app = fastify({ logger: true });
 
 // Register CORS
 app.register(cors, {
@@ -19,38 +14,39 @@ app.register(cors, {
 });
 
 // Health check endpoint
-app.get("/health", async (request: FastifyRequest, reply: FastifyReply) => {
+app.get("/health", async (request, reply) => {
   console.log("health check");
   reply.status(200).send({ status: "OK" });
 });
 
 app.all(
   "/:serviceName",
-  async (request: FastifyRequest, reply: FastifyReply) => {
-    const { serviceName } = request.params as { serviceName: string };
+  async (request, reply) => {
+    const { serviceName } = request.params;
     const { method, headers, query, body } = request;
 
     const forwardedHeaders = { ...headers };
 
     try {
       const result = await proxyRequest(
-        serviceName.toLowerCase() as ServiceName,
+        serviceName.toLowerCase(),
         method,
-        request.url.split("?")[0].replace(`/${serviceName}`, "") || "/",
-        query as Record<string, any>,
+        query,
         forwardedHeaders,
         body
       );
       // console.log('result', result)
-      if (result && result.status !== 200) {
+      if (result && result.data.message) {
         reply.status(result.status).send({ message: result?.data.message });
-      } else if (result && result.status === 200) {
-        return result.data;
+      } else {
+        if (result.data) {
+          return result.data;
+        }
       }
     } catch (error) {
       if (
-        (error as Error).message &&
-        (error as Error).message.includes("Service URL not configured")
+        (error).message &&
+        (error).message.includes("Service URL not configured")
       ) {
         reply.status(502).send({ message: "Cannot process request" });
       } else {
