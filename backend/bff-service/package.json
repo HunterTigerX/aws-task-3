@@ -3,7 +3,7 @@
     "version": "1.0.0",
     "main": "dist/index.js",
     "scripts": {
-        "start": "node lambda/app.js",
+        "start": "node scripts/start.js",
         "build": "tsc",
         "dev": "ts-node-dev src/index.ts",
         "cdk": "cdk",

@@ -1,6 +1,8 @@
 Локальное приложение можно запустив введя команду `npm run start` находять в папке `backend\bff-service`, или находясь в корне проекта, указав путь в консоли при помощи `cd .\backend\bff-service\`.
 
-AUTH
+Обязательно нужно создать .env файлы в `backend\bff-service` и `backend\bff-service\lambda`  
+
+AUTH ЗАПРОСЫ  
 POST http://localhost:3000/authorization?register регистрирует пользователя
 ```
 {
@@ -15,7 +17,7 @@ POST http://localhost:3000/authorization?login возвращает Bearer Token
   "password": "TEST_PASSWORD"
 }
 ```
-PRODUCT
+PRODUCT ЗАПРОСЫ  
 Для всех запросов надо иметь Basic авторизацию.
 GET http://localhost:3000/products возвращает все продукты
 GET http://localhost:3000/product возвращает все продукты
@@ -46,12 +48,12 @@ PUT http://localhost:3000/product позволяет изменять данны
 ```
 На сайте по адресу `https://d138sljllinulj.cloudfront.net/admin/product-form` при помощи PUT запроса на BFF можно добавить новый продукт.
 
-DELETE http://localhost:3000/product?{id}, к примеру, http://localhost:3000/product?4b4a7ccb-f566-4527-a129-d9a948cf0aca удаляет продукт из базы данных. Можно узнать товары используя GET запрос http://localhost:3000/products, там взять ID продукта, затем удалить по id товар. 
+DELETE http://localhost:3000/product?{id}, к примеру, http://localhost:3000/product?4b4a7ccb-f566-4527-a129-d9a948cf0aca удаляет продукт из базы данных. Можно узнать товары используя GET запрос http://localhost:3000/products, там взять ID продукта, затем удалить по id товар.  
 На сайте удаления товаров работает на странице `https://d138sljllinulj.cloudfront.net/admin/orders`.
 
-CART
-GET http://localhost:3000/cart возвращает товары в корзине
-PUT http://localhost:3000/cart добавляет товары в корзину
+CART ЗАПРОСЫ  
+GET http://localhost:3000/cart возвращает товары в корзине  
+PUT http://localhost:3000/cart добавляет товары в корзину  
 При добавлении товара в корзину, следует помнить, что должна быть авторизация. id может в примере быть не валидным, если вдруг я сгенерирую по новой базу данных, следовательно лучше всего сначала запустить `http://localhost:3000/product`, там взять id продукта, затем его использовать при запросе в `http://localhost:3000/cart`
 ```
 {
@@ -61,7 +63,7 @@ PUT http://localhost:3000/cart добавляет товары в корзину
     "count": 1
 }
 ```
-GET http://localhost:3000/cart?order возвращает список заказов.
+GET http://localhost:3000/cart?order возвращает список заказов.  
 PUT http://localhost:3000/cart?order отправляет заказ
 ```
 {
@@ -80,12 +82,12 @@ PUT http://localhost:3000/cart?order отправляет заказ
 }
 ```
 
-PROFILE
+PROFILE ЗАПРОСЫ  
 GET http://localhost:3000/profile возвращает данные профиля, но помните, что должна быть включена авторизация
 
-IMPORT
-POST http://localhost:3000/import?name=test.csv импортирует .csv файл в bucket и добавляет данные из файла в базу данных, если данные имеют правильную структуру. Пример файла находится в корне проекта и называется `import example.csv`
-Обязательно надо иметь ?name, и =test.csv имеет проверку на валидность названия файла и расширение. Файл не должен иметь запрещенные слова или символы или иметь недопустимый формат
+IMPORT ЗАПРОСЫ  
+POST http://localhost:3000/import?name=test.csv импортирует .csv файл в bucket и добавляет данные из файла в базу данных, если данные имеют правильную структуру. Пример файла находится в корне проекта и называется `import example.csv`  
+Обязательно надо иметь ?name, и =test.csv имеет проверку на валидность названия файла и расширение. Файл не должен иметь запрещенные слова или символы или иметь недопустимый формат  
 Данные добавлять в Body - raw, можно 1 объект
 
 ```
@@ -117,9 +119,9 @@ POST http://localhost:3000/import?name=test.csv импортирует .csv фа
 ]
 ```
 
-Как проверить быстро дополнительное задание
-1)Запустить локальное приложение, если оно не было запущено или если было остановлено
-2)Выполнить GET запрос по адресу http://localhost:3000/products, к примеру в `Postman`
-3)Открыть `https://d138sljllinulj.cloudfront.net/admin/product-form`, создать продукт с любыми данными
-4)Выполнить новый GET запрос по адресу http://localhost:3000/products и посмотреть, что продукт, который вы создали, не отображается
+Как проверить быстро дополнительное задание  
+1)Запустить локальное приложение, если оно не было запущено или если было остановлено  
+2)Выполнить GET запрос по адресу http://localhost:3000/products, к примеру в `Postman`  
+3)Открыть `https://d138sljllinulj.cloudfront.net/admin/product-form`, создать продукт с любыми данными  
+4)Выполнить новый GET запрос по адресу http://localhost:3000/products и посмотреть, что продукт, который вы создали, не отображается  
 5)Можно открыть на сайте главную страницу по адресу `https://d138sljllinulj.cloudfront.net`, чтобы убедиться, что хотя по GET запросу товара нету, но на главной странице он есть.
