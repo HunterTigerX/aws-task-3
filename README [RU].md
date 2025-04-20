@@ -1,6 +1,9 @@
 Локальное приложение можно запустив введя команду `npm run start` находять в папке `backend\bff-service`, или находясь в корне проекта, указав путь в консоли при помощи `cd .\backend\bff-service\`.
 
 Обязательно нужно создать .env файлы в `backend\bff-service` и `backend\bff-service\lambda`  
+Полезные браузерные команды для проверки FE.  
+localStorage.setItem('authorization_token', 'aHVudGVydGlnZXJ4MzpURVNUX1BBU1NXT1JE')  
+localStorage.getItem("authorization_token")  
 
 AUTH ЗАПРОСЫ  
 POST http://localhost:3000/authorization?register регистрирует пользователя

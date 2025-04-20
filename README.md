@@ -3,6 +3,9 @@ There is a readme in Russian language in the root of the project, called `README
 The local application can be launched by entering the command `npm run start` found in the folder `backend\bff-service`, or being in the root of the project, specifying the path in the console using `cd .\backend\bff-service\`.  
 
 It is mandatory to create .env files in `backend\bff-service` and `backend\bff-service\lambda`  
+Also here are useful commands to check the FE side.  
+localStorage.setItem('authorization_token', 'aHVudGVydGlnZXJ4MzpURVNUX1BBU1NXT1JE')  
+localStorage.getItem("authorization_token")  
 
 AUTH REQUESTS  
 POST http://localhost:3000/authorization?register registers the user  
