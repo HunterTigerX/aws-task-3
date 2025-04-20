@@ -1,3 +1,5 @@
+There is a readme in Russian language in the root of the project, called `README [RU].md`.
+
 The local application can be launched by entering the command `npm run start` found in the folder `backend\bff-service`, or being in the root of the project, specifying the path in the console using `cd .\backend\bff-service\`.
 
 AUTH
