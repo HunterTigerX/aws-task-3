@@ -43,9 +43,9 @@ async function deploy() {
     console.log("Deploying infrastructure...");
     execute("cdk deploy --require-approval never");
 
-    // Create and seed DynamoDB tables
-    console.log("Creating and seeding DynamoDB tables...");
-    execute("node createTables.js", path.join(__dirname, "../dynamoDB"));
+    // // Create and seed DynamoDB tables
+    // console.log("Creating and seeding DynamoDB tables...");
+    // execute("node createTables.js", path.join(__dirname, "../dynamoDB"));
 
     // Invalidate CloudFront cache
     console.log("Invalidating CloudFront cache...");

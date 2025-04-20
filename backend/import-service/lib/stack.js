@@ -21,6 +21,8 @@ class ImportStack extends Stack {
   constructor(scope, id, props) {
     super(scope, id, props);
 
+    console.log("Hello, ImportStack")
+
     // In your ImportStack class
     const CORS_POLICY = {
       AllowedHeaders: ["*"],
@@ -104,6 +106,7 @@ class ImportStack extends Stack {
         "sqs:GetQueueAttributes",
         "sqs:SendMessage",
         "sqs:SendMessageBatch",
+        "s3:PutObjectAcl",
       ],
       resources: [
         uploadBucket.bucketArn, // For bucket-level operations
@@ -125,7 +128,7 @@ class ImportStack extends Stack {
     this.deployUploadContent(uploadBucket);
 
     // Create Lambda functions
-    const { importProductsFile, importFileParser } = this.createLambdaFunctions(
+    const { importProductsFile, importFileParser, importProductsPost } = this.createLambdaFunctions(
       dbPolicies,
       uploadBucket,
       lambdaRole,
@@ -148,7 +151,7 @@ class ImportStack extends Stack {
     );
 
     // Create API Gateway and endpoints
-    this.createApiGateway(importProductsFile, importFileParser);
+    this.createApiGateway(importProductsFile, importFileParser, importProductsPost);
   }
 
   createWebsiteBucket() {
@@ -208,15 +211,36 @@ class ImportStack extends Stack {
     queue.grantSendMessages(importFileParser);
 
     importFileParser.addToRolePolicy(dbPolicies);
+
+       // New Lambda function for POST requests
+       const importProductsPost = new lambda.Function(this, "ImportProductsPost", {
+        runtime: lambda.Runtime.NODEJS_18_X,
+        handler: "index.handler",
+        code: lambda.Code.fromAsset(
+          path.join(__dirname, "../lambda/importProductsPost")
+        ),
+        environment: {
+          BUCKET_NAME: bucketNameUpload.bucketName,
+        },
+        role: lambdaRole,
+      });
+      importProductsPost.addToRolePolicy(dbPolicies);
+
     return {
       importProductsFile,
       importFileParser,
+      importProductsPost,
     };
   }
 
-  createApiGateway(importProductsFile) {
+  createApiGateway(importProductsFile, importProductsPost) {
     const api = new apigateway.RestApi(this, "ImportApi", {
       restApiName: "Import Service",
+      deployOptions: {
+        loggingLevel: apigateway.MethodLoggingLevel.INFO,
+        dataTraceEnabled: true,
+        metricsEnabled: true,
+      },
       defaultCorsPreflightOptions: {
         allowOrigins: apigateway.Cors.ALL_ORIGINS,
         allowMethods: apigateway.Cors.ALL_METHODS,
@@ -258,7 +282,6 @@ class ImportStack extends Stack {
     // Create /import endpoint
     const importResource = api.root.addResource("import");
 
-
     importResource.addMethod(
       "GET",
       new apigateway.LambdaIntegration(importProductsFile),
@@ -278,6 +301,30 @@ class ImportStack extends Stack {
         ],
       }
     );
+
+    importResource.addMethod(
+      "POST",
+      new apigateway.LambdaIntegration(importProductsPost),
+      {
+        authorizer: authorizer,
+        authorizationType: apigateway.AuthorizationType.CUSTOM,
+        methodResponses: [
+          {
+            statusCode: "200",
+            responseParameters: {
+              "method.response.header.Access-Control-Allow-Origin": true,
+            },
+          },
+          {
+            statusCode: "400",
+            responseParameters: {
+              "method.response.header.Access-Control-Allow-Origin": true,
+            },
+          },
+        ],
+      }
+    );
+    
     // importResource.addMethod(
     //   "GET",
     //   new apigateway.LambdaIntegration(importProductsFile, {

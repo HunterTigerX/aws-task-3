@@ -73,6 +73,6 @@ exports.handler = async (event) => {
     return createResponse(200, product);
   } catch (error) {
     console.error("Error:", error);
-    return createResponse(500, { message: "Internal server error" });
+    return createResponse(500, { message: "Internal server error at get product by id" });
   }
 };

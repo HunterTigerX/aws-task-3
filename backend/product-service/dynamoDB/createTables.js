@@ -1,54 +1,45 @@
 const AWS = require("aws-sdk");
+const { Client } = require('pg');  // Change to PostgreSQL client
 
-const { products } = require("./mockData");
-
-AWS.config.update({ region: "eu-central-1" }); // Update region if required
+AWS.config.update({ region: "eu-central-1" });
 
 const dynamodb = new AWS.DynamoDB();
 const docClient = new AWS.DynamoDB.DocumentClient();
 
-async function clearTable(tableName) {
+// Configure PostgreSQL client
+const dbConfig = {
+  host: "cartdb.czwk442a8alq.eu-central-1.rds.amazonaws.com",
+  user: "postgres",
+  password: "postgres",
+  database: "cartdb",
+  port: 5432,
+  ssl: {
+    rejectUnauthorized: false
+  }
+};
+
+async function fetchProductsFromRDS() {
+  const client = new Client(dbConfig);
+  
   try {
-    console.log(`Clearing table ${tableName}...`);
-
-    // 1. Сканируем все записи
-    const scanParams = {
-      TableName: tableName,
-    };
-    const scanResult = await docClient.scan(scanParams).promise();
-
-    if (scanResult.Items.length === 0) {
-      console.log(`Table ${tableName} is already empty.`);
-      return;
-    }
-
-    // 2. Удаляем записи пачками (batchWrite)
-    const batchSize = 25; // Максимум 25 элементов за запрос
-    const batches = [];
-    for (let i = 0; i < scanResult.Items.length; i += batchSize) {
-      const batch = scanResult.Items.slice(i, i + batchSize);
-      batches.push(batch);
-    }
-
-    for (const batch of batches) {
-      const deleteRequests = batch.map(item => {
-        const key = tableName === 'products' 
-          ? { id: item.id } 
-          : { product_id: item.product_id };
-        return { DeleteRequest: { Key: key } };
-      });
-
-      await docClient.batchWrite({
-        RequestItems: {
-          [tableName]: deleteRequests,
-        },
-      }).promise();
-    }
-
-    console.log(`Table ${tableName} cleared successfully.`);
+    await client.connect();
+    console.log('Successfully connected to PostgreSQL');
+    
+    const result = await client.query('SELECT * FROM products');
+    
+    // Transform the data to match DynamoDB structure
+    return result.rows.map(row => ({
+      id: row.id.toString(),
+      title: row.title,
+      description: row.description,
+      price: row.price,
+      imgurl: row.imgurl
+    }));
   } catch (error) {
-    console.error(`Error clearing table ${tableName}:`, error);
+    console.error('Error fetching products from RDS:', error);
     throw error;
+  } finally {
+    await client.end();
   }
 }
 
@@ -90,46 +81,76 @@ async function createTables() {
   }
 }
 
+
+async function clearTable(tableName) {
+  try {
+    console.log(`Clearing table ${tableName}...`);
+
+    const scanParams = { TableName: tableName };
+    const scanResult = await docClient.scan(scanParams).promise();
+
+    if (scanResult.Items.length === 0) {
+      console.log(`Table ${tableName} is already empty.`);
+      return;
+    }
+
+    const batchSize = 25;
+    const batches = [];
+    for (let i = 0; i < scanResult.Items.length; i += batchSize) {
+      batches.push(scanResult.Items.slice(i, i + batchSize));
+    }
+
+    for (const batch of batches) {
+      const deleteRequests = batch.map(item => ({
+        DeleteRequest: { 
+          Key: tableName === 'products' 
+            ? { id: item.id } 
+            : { product_id: item.product_id } 
+        }
+      }));
+
+      await docClient.batchWrite({
+        RequestItems: { [tableName]: deleteRequests }
+      }).promise();
+    }
+
+    console.log(`Table ${tableName} cleared successfully.`);
+  } catch (error) {
+    console.error(`Error clearing table ${tableName}:`, error);
+    throw error;
+  }
+}
+
 async function seedData() {
   await clearTable('products');
   await clearTable('stocks');
 
-  const stocks = [];
-
-  async function fillStocks() {
-    for (let i = 0; i < products.length; i++) {
-      stocks.push({
-        product_id: products[i].id,
-        count: Math.floor(Math.random() * 100) + 1,
-      });
-    }
-    return Promise.resolve();
-  }
-
-  await fillStocks();
-
   try {
-    console.log(stocks[0], "Stonks");
-    console.log("Starting to seed data...");
+    console.log("Starting to fetch and seed data...");
+    
+    // Fetch products from RDS
+    const products = await fetchProductsFromRDS();
+    
+    // Generate stocks data based on products
+    const stocks = products.map(product => ({
+      product_id: product.id,
+      count: Math.floor(Math.random() * 100) + 1,
+    }));
 
+    // Write products to DynamoDB
     for (const product of products) {
-      await docClient
-        .put({
-          TableName: "products",
-          Item: product,
-        })
-        .promise();
-      // console.log(`Added product: ${product.title}`);
+      await docClient.put({
+        TableName: "products",
+        Item: product,
+      }).promise();
     }
 
+    // Write stocks to DynamoDB
     for (const stock of stocks) {
-      await docClient
-        .put({
-          TableName: "stocks",
-          Item: stock,
-        })
-        .promise();
-      // console.log(`Added stock for product: ${stock.product_id}`);
+      await docClient.put({
+        TableName: "stocks",
+        Item: stock,
+      }).promise();
     }
 
     console.log("Data seeded successfully");
@@ -138,6 +159,7 @@ async function seedData() {
     throw error;
   }
 }
+
 
 async function waitForTableActive(tableName) {
   console.log(`Waiting for table ${tableName} to become active...`);
@@ -153,10 +175,10 @@ async function waitForTableActive(tableName) {
   }
 }
 
+// Add error handling for database connection
 async function main() {
   try {
     await createTables();
-    // Wait for both tables to be active
     await Promise.all([
       waitForTableActive("products"),
       waitForTableActive("stocks"),

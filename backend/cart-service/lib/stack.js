@@ -113,7 +113,7 @@ class CartStack extends Stack {
     const dbSG = ec2.SecurityGroup.fromSecurityGroupId(
       this,
       "DBSecurityGroup",
-      "vpc-01c02411964bf41ca"
+      "vpc-08cf592f047b20f17"
     );
 
     // Allow Lambda to connect to RDS

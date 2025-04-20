@@ -1,19 +1,79 @@
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
-const { SNSClient, PublishCommand } = require("@aws-sdk/client-sns"); // Make sure this package is in your dependencies
+const { SNSClient, PublishCommand } = require("@aws-sdk/client-sns"); 
 const {
   DynamoDBDocumentClient,
   TransactWriteCommand,
 } = require("@aws-sdk/lib-dynamodb");
 const { v4: uuidv4 } = require("uuid");
+const { Client } = require("pg");
+const dotenv = require("dotenv");
+dotenv.config();
 
 const client = new DynamoDBClient();
 const docClient = DynamoDBDocumentClient.from(client);
 const snsClient = new SNSClient(); // This should work now
 
+
+
+async function createProduct(body, productId) {
+  const rdsClient = new Client({
+    host:
+      process.env.DB_HOST || "cartdb.czwk442a8alq.eu-central-1.rds.amazonaws.com",
+    port: parseInt(process.env.DB_PORT || "5432"),
+    user: process.env.DB_USERNAME,
+    password: process.env.DB_PASSWORD,
+    database: "cartdb",
+    ssl: {
+      rejectUnauthorized: false,
+    },
+  });
+
+  if (typeof body === 'string') {
+    body = JSON.parse(body);
+  }
+  const title = body["title"];
+  const description = body["description"];
+  const price = body["price"];
+  const imgurl = body["imgurl"];
+
+  // PostgreSQL Query
+  const pgQuery = {
+    text: `INSERT INTO products(id, title, description, price, imgurl) 
+           VALUES($1, $2, $3, $4, $5)`,
+    values: [productId, title, description, price, imgurl],
+  };
+
+  try {
+    // Connect to PostgreSQL
+    await rdsClient.connect();
+
+    // Start transaction
+    await rdsClient.query("BEGIN");
+    
+    // Execute PostgreSQL query
+    await rdsClient.query(pgQuery);
+    
+    // Commit transaction if both succeed
+    await rdsClient.query("COMMIT");
+    return productId;
+  } catch (error) {
+    // Rollback on error
+    console.error("Error creating product:", error);
+    await rdsClient.query("ROLLBACK");
+    await rdsClient.end();
+    throw error;
+  } finally {
+    // Close connection
+    console.log("success");
+    await rdsClient.end();
+  }
+}
+
 const headers = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-  "Access-Control-Allow-Headers":"Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
+  "Access-Control-Allow-Headers":
+    "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
   "Content-Type": "application/json",
 };
 
@@ -36,6 +96,13 @@ exports.handler = async (event) => {
       console.log("Processing record:", record.messageId);
       console.log("Raw message body:", record.body);
       console.log("Processing SQS record:", record);
+      const productId = uuidv4();
+
+      try {
+        await createProduct(record.body, productId);
+      } catch (error) {
+        console.log("error adding record to the RDS", error);
+      }
       let product;
       try {
         product = JSON.parse(record.body);
@@ -47,19 +114,19 @@ exports.handler = async (event) => {
       // Converting price and count to numbers
       product.price = Number(product.price);
       product.count = Number(product.count);
-      console.log('product description', product.description)
-      console.log('product title', product.title)
-      console.log('product count', product.count)
-      console.log('product price', product.price)
-      
-      const { title, description, price, count } = product;
 
-      if (!title || typeof price !== "number" || typeof count !== "number") {
+      const { title, description, price, count, imgurl } = product;
+
+      if (
+        !title ||
+        typeof price !== "number" ||
+        typeof count !== "number" ||
+        !imgurl
+      ) {
         console.error("Invalid product data:", product);
         continue;
       }
 
-      const productId = uuidv4();
       console.log("Generated product ID:", productId);
 
       const transactParams = {
@@ -72,6 +139,7 @@ exports.handler = async (event) => {
                 title,
                 description,
                 price,
+                imgurl,
               },
             },
           },
@@ -101,6 +169,7 @@ exports.handler = async (event) => {
               description,
               price,
               count,
+              imgurl,
             }),
             MessageAttributes: {
               price: {

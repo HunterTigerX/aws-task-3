@@ -1,82 +1,131 @@
-1. Task: https://github.com/rolling-scopes-school/aws/blob/main/aws-developer/09_containerization/task.md
-2. Screenshot:  
-![image](https://github.com/user-attachments/assets/47a5d807-347b-4585-bd0e-e7a9ea30cfe3)
-RDS Database
-![image](https://github.com/user-attachments/assets/fa2f7d4b-798b-4ed9-ba4e-f06ecd7c4797)
-Registering a user
-![image](https://github.com/user-attachments/assets/ff102164-8aae-4ea5-8f4f-21d9b6091d73)
-If we try to register the user with the same username
-![image](https://github.com/user-attachments/assets/b39de191-b69c-4e00-a762-8b7855248ca9)
-Logging in
-![image](https://github.com/user-attachments/assets/e233bc02-497c-4602-8460-cf5dde01be2e)
-Getting profile info
-![image](https://github.com/user-attachments/assets/8e8d5658-192c-4a11-b488-f79953e968ed)
-Getting profile info with a wrong password
-![image](https://github.com/user-attachments/assets/75e22e6c-cc35-4483-b0c3-3a5cf56de81b)
-Putting item in the cart
-![image](https://github.com/user-attachments/assets/ecf1deb4-0f34-43e4-bff5-4d11074d26dc)
-Getting cart info
-![image](https://github.com/user-attachments/assets/8aa0777f-dea7-462d-bec9-28bdc049df66)
-Getting order info
-![image](https://github.com/user-attachments/assets/170ccf55-6f27-49ff-9f2f-dc896979c132)
-Putting the order
-![image](https://github.com/user-attachments/assets/e3ce8eba-c8e0-4762-a5bd-3be6451e8e10)
-Opening Checkout on the FE side
-huntertigerx3:TEST_PASSWORD equals aHVudGVydGlnZXJ4MzpURVNUX1BBU1NXT1JE
-![image](https://github.com/user-attachments/assets/eee2cab7-1269-4e2b-90eb-63908652479a)
-Docker size (Docker was created using the command `docker build -t cart-service .`)
-![image](https://github.com/user-attachments/assets/62976975-b2ea-4817-b81f-0d994acdc075)
-![image](https://github.com/user-attachments/assets/5fe6068b-44bf-41bc-b084-a246c5503089)
-![image](https://github.com/user-attachments/assets/2c9aa9b1-8cf3-4917-9d45-595632c152f7)
-EC2 and EBS data
-The deployment was made using commands
-`eb init -p "Docker running on 64bit Amazon Linux 2023" --region eu-central-1 huntertigerx-cart-api`
-`eb create develop --cname huntertigerx-cart-api-dev --single --keyname eb-https-key --envvars DB_HOST=cartdb.czwk442a8alq.eu-central-1.rds.amazonaws.com,DB_PORT=5432,DB_USER=postgres,DB_PASSWORD=postgres,DB_NAME=cartdb`
-![image](https://github.com/user-attachments/assets/4c497be7-e8df-46cc-a08f-0dd2df9c6fac)
-On the FE side we are using PROXY from  `https://d3i4i6d65bcscf.cloudfront.net` to `http://huntertigerx-cart-api-dev.eu-central-1.elasticbeanstalk.com/`, because of the mixed requests, since we need to use single instance and to manually add SSL key we need to either use Route 53 or own a host. Keys made by user did not work.
-4.1 Deploy FE: https://d138sljllinulj.cloudfront.net
-4.2 Deploy BS: http://huntertigerx-cart-api-dev.eu-central-1.elasticbeanstalk.com
-4.2 Deploy Lambda: https://wu9umi35c8.execute-api.eu-central-1.amazonaws.com/prod
-5. Done 12.04.2025 / deadline 13.04.2025
-6. Score: 100 / 100
-- Basic Scope
-- [x] **+0** Dockerfile is prepared, image is building. Image size is minimized to be less than 500 MB.
-- [x] **+0** Dockerfile is optimized. Files that change more often and commands that depend on them should be included later, files and commands that change less should be at the top.
-- [x] **+70** Folders are added to .dockerignore, with explanations. At least 2 big directories should be excluded from build context. Elastic Beanstalk application is initialized.
-- Additional (optional) tasks
-- [x] **+15** Environment is created and the app is deployed to the AWS cloud. You must provide a link to your GitHub repo with Cart Service API or PR with created Dockerfile and related configurations.
-- [x] **+15** FE application is updated with Cart API endpoint. You must provide a PR with updates in your FE repository and OPTIONALLY link to deployed front-end app which makes proper API calls to your Cart Service.
+There is a readme in Russian language in the root of the project, called `README [RU].md`.  
 
-Example's body 1
+The local application can be launched by entering the command `npm run start` found in the folder `backend\bff-service`, or being in the root of the project, specifying the path in the console using `cd .\backend\bff-service\`.  
+
+It is mandatory to create .env files in `backend\bff-service` and `backend\bff-service\lambda`  
+Also here are useful commands to check the FE side.  
+localStorage.setItem('authorization_token', 'aHVudGVydGlnZXJ4MzpURVNUX1BBU1NXT1JE')  
+localStorage.getItem("authorization_token")  
+
+AUTH REQUESTS  
+POST http://localhost:3000/authorization?register registers the user  
 ```
 {
-  "username": "huntertigerx3",
-  "password": "TEST_PASSWORD"
+"username": "huntertigerx3",
+"password": "TEST_PASSWORD"
 }
-```
-Example's body 2
+```  
+POST http://localhost:3000/authorization?login returns Bearer Token
 ```
 {
-    "product": {
-      "id": "906a2bc0-1c03-4c47-ac55-c95299981ee8"
-    },
-    "count": 1
-  }
-```
- Example's body 3
- ```
- {
-    "items": [
-        {
-            "productId": "906a2bc0-1c03-4c47-ac55-c95299981ee8",
-            "count": 2
-        },
-    ],
-    "address": {
-        "comment": "test comment",
-        "address": "test address",
-        "lastName": "real last name",
-        "firstName": "unreal first name"
-    }
+"username": "huntertigerx3",
+"password": "TEST_PASSWORD"
 }
+```  
+PRODUCT REQUESTS  
+For all requests you must have Basic authorization.  
+GET http://localhost:3000/products returns all products  
+GET http://localhost:3000/product returns all products  
+GET http://localhost:3000/product?available returns all products  
+GET http://localhost:3000/products?4b4a7ccb-f566-4527-a129-d9a948cf0aca returns a product by ID  
+GET http://localhost:3000/product?4b4a7ccb-f566-4527-a129-d9a948cf0aca returns a product by ID  
+
+PUT http://localhost:3000/product allows you to change product data if the correct product ID is specified. On the site, when changing product data, it allows you to change only the fields `Title`, `Description`, `Price`, `Count`, but using JSON, you can use both  
 ```
+{
+"count": 90,
+"imgurl": "https://github.com/HunterTigerX/aws-task-3/blob/task-10/assets/Samsung%20Galaxy%20S23.jpg?raw=true",
+"price": 799.99,
+"description": "Flagship DS Android phone with Snapdragon 8 Gen 145",
+"title": "Samsung Galaxy ABS23",
+"id": "4b4a7ccb-f566-4527-a129-d9a948cf0aca"
+}
+```  
+And  
+```
+{
+"count": 90,
+"price": 799.99,
+"description": "Flagship Android phone with Snapdragon 8 Gen 22",
+"title": "Samsung Galaxy S23",
+"id": "4b4a7ccb-f566-4527-a129-d9a948cf0aca"
+}
+```  
+You can add a new product to the site at `https://d138sljllinulj.cloudfront.net/admin/product-form` using a PUT request to BFF.  
+
+DELETE http://localhost:3000/product?{id}, for example, http://localhost:3000/product?4b4a7ccb-f566-4527-a129-d9a948cf0aca deletes the product from the database. You can find out the products using the GET request http://localhost:3000/products, take the product ID there, then delete the product by id.  
+On the product deletion site, it works on the page `https://d138sljllinulj.cloudfront.net/admin/orders`.  
+
+CART REQUESTS  
+GET http://localhost:3000/cart returns the products in the cart  
+PUT http://localhost:3000/cart adds products to the cart  
+When adding a product to the cart, remember that there must be authorization. id may not be valid in the example if I suddenly generate a new database, therefore it is best to first run `http://localhost:3000/product`, take the product id there, then use it when requesting `http://localhost:3000/cart`  
+```
+{
+"product": {
+"id": "732891c7-c352-40a4-8c93-6f9bcaaad277"
+},
+"count": 1
+}
+```  
+GET http://localhost:3000/cart?order returns a list of orders.  
+PUT http://localhost:3000/cart?order submits the order  
+```
+{
+"items": [
+{
+"productId": "1ea0ef3e-23f1-438a-97ca-fe3dd4caf68f",
+"count": 2
+}
+],
+"address": {
+"comment": "test comment",
+"address": "test address",
+"lastName": "real last name",
+"firstName": "unreal first name"
+}
+}
+```  
+
+PROFILE REQUESTS  
+GET http://localhost:3000/profile returns profile data, but remember that authorization must be enabled  
+
+IMPORT REQUESTS  
+POST http://localhost:3000/import?name=test.csv imports the .csv file into the bucket and adds the data from the file to the database if the data has the correct structure. The example file is in the root of the project and is called `import example.csv`
+It is necessary to have ?name, and =test.csv has a check for the validity of the file name and extension. The file must not contain prohibited words or characters or have an invalid format
+Add data to Body - raw, 1 object is allowed  
+
+```
+{
+"title": "Manual Product Test Import 3",
+"price": "799.99",
+"description": "Flagship Android phone with Snapdragon 8 Gen 2",
+"count": 2,
+"imgurl": "https://github.com/HunterTigerX/aws-task-3/blob/task-10/assets/Samsung%20Galaxy%20S23.jpg?raw=true"
+}
+```  
+or an array of objects  
+```
+[
+{
+"title": "Manual Product Test Import 0",
+"price": "799.99",
+"description": "Flagship Android phone with Snapdragon 8 Gen 2",
+"count": 2,
+"imgurl": "https://github.com/HunterTigerX/aws-task-3/blob/task-10/assets/Samsung%20Galaxy%20S23.jpg?raw=true"
+},
+{
+"title": "Manual Product Test Import 1",
+"price": "799.99",
+"description": "Flagship Android phone with Snapdragon 8 Gen 2",
+"count": 2,
+"imgurl": "https://github.com/HunterTigerX/aws-task-3/blob/task-10/assets/Samsung%20Galaxy%20S23.jpg?raw=true"
+}
+]
+```  
+
+How to quickly check an additional task  
+1) Run a local application if it was not launched or if it was stopped  
+2) Perform a GET request to the http://localhost:3000/products, for example in `Postman`  
+3) Open `https://d138sljllinulj.cloudfront.net/admin/product-form`, create a product with any data  
+4) Perform a new GET request to http://localhost:3000/product
