@@ -46,7 +46,7 @@ app.all(
     } catch (error) {
       if (
         (error).message &&
-        (error).message.includes("Service URL not configured")
+        (error).message.includes("Service URL not configured. Please check the method you are using.")
       ) {
         reply.status(502).send({ message: "Cannot process request" });
       } else {
